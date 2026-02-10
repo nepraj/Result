@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Result Portal</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Playfair+Display:wght@700&display=swap');
+        
+        .a4-paper {
+            width: 210mm;
+            min-height: 297mm;
+            background: white;
+            margin: 0 auto;
+            padding: 20mm;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            font-family: 'Times New Roman', serif;
+            position: relative;
+        }
+        body { font-family: 'Roboto', sans-serif; background-color: #f3f4f6; }
+        .hidden-section { display: none; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+    <nav class="bg-blue-900 text-white p-4 shadow-md">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold"><i class="fas fa-graduation-cap"></i> Result Portal</h1>
+            <div>
+                <button onclick="showSection('search-section')" class="px-4 py-2 hover:bg-blue-800 rounded">Student Search</button>
+                <button onclick="checkAdminSession()" class="px-4 py-2 hover:bg-blue-800 rounded">Admin Login</button>
+                <button id="logoutBtn" onclick="logout()" class="hidden-section px-4 py-2 bg-red-600 rounded ml-2">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <section id="login-section" class="hidden-section container mx-auto mt-10 p-4 max-w-md">
+        <div class="bg-white p-8 rounded-lg shadow-lg">
+            <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">Admin Secure Login</h2>
+            <input type="password" id="adminPass" placeholder="Enter Password" class="w-full p-3 border rounded mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <button onclick="handleLogin()" class="w-full bg-blue-600 text-white p-3 rounded font-bold hover:bg-blue-700 transition">Login</button>
+            <p id="loginError" class="text-red-500 text-sm mt-3 text-center"></p>
+        </div>
+    </section>
+
+    <section id="admin-section" class="hidden-section container mx-auto mt-10 p-4">
+        <div class="bg-white p-6 rounded-lg shadow-lg">
+            <div class="flex justify-between items-center mb-6 border-b pb-4">
+                <h2 class="text-2xl font-bold text-gray-800">Admin Dashboard</h2>
+                <span id="timer" class="text-sm text-gray-500">Session expires in: 30m</span>
+            </div>
+
+            <form id="resultForm" onsubmit="addResult(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="col-span-2 bg-blue-50 p-2 rounded text-blue-800 font-bold">Exam Details</div>
+                <input type="text" id="instName" placeholder="Institution Name" required class="p-2 border rounded">
+                <input type="text" id="examName" placeholder="Exam Name" required class="p-2 border rounded">
+                <input type="text" id="examYear" placeholder="Year (e.g., 2025)" required class="p-2 border rounded">
+                
+                <div class="col-span-2 bg-blue-50 p-2 rounded text-blue-800 font-bold mt-4">Student Details</div>
+                <input type="text" id="stuName" placeholder="Student Name" required class="p-2 border rounded">
+                <input type="text" id="rollNo" placeholder="Roll Number" required class="p-2 border rounded">
+                
+                <div class="col-span-2 bg-blue-50 p-2 rounded text-blue-800 font-bold mt-4">Marks Entry</div>
+                <input type="number" id="totalQ" placeholder="Total Questions" class="p-2 border rounded">
+                <input type="number" id="totalMarks" placeholder="Total Marks" required class="p-2 border rounded">
+                <input type="number" id="correctAns" placeholder="Correct Answers (+1)" class="p-2 border rounded" oninput="autoCalculate()">
+                <input type="number" id="incorrectAns" placeholder="Incorrect Answers (-1)" class="p-2 border rounded" oninput="autoCalculate()">
+                
+                <input type="number" id="obtainedMarks" placeholder="Obtained Marks" readonly class="p-2 border rounded bg-gray-100 font-bold text-green-700">
+                <input type="text" id="percentage" placeholder="Percentage" readonly class="p-2 border rounded bg-gray-100">
+
+                <div class="col-span-2 flex gap-4 mt-4">
+                    <button type="submit" class="bg-green-600 text-white px-6 py-3 rounded font-bold hover:bg-green-700 w-full">Upload Result</button>
+                    <button type="button" onclick="clearData()" class="bg-red-500 text-white px-6 py-3 rounded font-bold hover:bg-red-600">Clear DB (Dev)</button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <section id="search-section" class="container mx-auto mt-10 p-4 max-w-lg">
+        <div class="bg-white p-8 rounded-lg shadow-lg text-center">
+            <h2 class="text-3xl font-bold mb-2 text-blue-900">Check Results</h2>
+            <p class="text-gray-500 mb-6">Enter your details to view result</p>
+            
+            <input type="text" id="searchRoll" placeholder="Enter Roll Number" class="w-full p-3 border rounded mb-4">
+            <div class="text-gray-400 mb-4">- OR -</div>
+            <input type="text" id="searchName" placeholder="Enter Name" class="w-full p-3 border rounded mb-6">
+            
+            <button onclick="searchResult()" class="w-full bg-blue-600 text-white p-3 rounded font-bold hover:bg-blue-700 transition">
+                <i class="fas fa-search"></i> Find Result
+            </button>
+        </div>
+    </section>
+
+    <section id="result-view" class="hidden-section container mx-auto mt-4 p-4 flex flex-col items-center">
+        
+        <div class="mb-6 flex gap-4">
+            <button onclick="downloadJPG()" class="bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700">
+                <i class="fas fa-download"></i> Download HD JPG
+            </button>
+            <button onclick="shareResult()" class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700">
+                <i class="fab fa-whatsapp"></i> Smart Share
+            </button>
+            <button onclick="showSection('search-section')" class="bg-gray-500 text-white px-4 py-2 rounded shadow">
+                Back
+            </button>
+        </div>
+
+        <div id="certificate" class="a4-paper">
+            <div class="text-center border-b-4 border-black pb-4 mb-6">
+                <h1 id="res-inst" class="text-4xl font-bold uppercase tracking-wider text-black">Institution Name</h1>
+                <h2 class="text-xl mt-2 font-semibold">Examination Result: <span id="res-exam"></span> (<span id="res-year"></span>)</h2>
+            </div>
+
+            <div class="flex justify-between text-lg mb-8 px-4">
+                <p><strong>Name:</strong> <span id="res-name"></span></p>
+                <p><strong>Roll No:</strong> <span id="res-roll"></span></p>
+            </div>
+
+            <table class="w-full border-collapse border border-black mb-8 text-center">
+                <thead class="bg-gray-200">
+                    <tr>
+                        <th class="border border-black p-3">Description</th>
+                        <th class="border border-black p-3">Details</th>
+                    </tr>
+                </thead>
+                <tbody class="text-lg">
+                    <tr><td class="border border-black p-2 text-left pl-4">Total Questions</td><td id="res-tq" class="border border-black p-2"></td></tr>
+                    <tr><td class="border border-black p-2 text-left pl-4">Total Attempted</td><td id="res-ta" class="border border-black p-2"></td></tr>
+                    <tr><td class="border border-black p-2 text-left pl-4 text-green-800">Correct Answers (+1)</td><td id="res-ca" class="border border-black p-2 text-green-800"></td></tr>
+                    <tr><td class="border border-black p-2 text-left pl-4 text-red-800">Incorrect Answers (-1)</td><td id="res-ia" class="border border-black p-2 text-red-800"></td></tr>
+                    <tr class="bg-gray-100 font-bold">
+                        <td class="border border-black p-3 text-left pl-4">MARKS OBTAINED</td>
+                        <td class="border border-black p-3 text-xl"><span id="res-om"></span> / <span id="res-tm"></span></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="grid grid-cols-2 gap-6 text-center mb-10">
+                <div class="border-2 border-black p-4">
+                    <p class="text-sm text-gray-600">PERCENTAGE</p>
+                    <p id="res-perc" class="text-3xl font-bold"></p>
+                </div>
+                <div class="border-2 border-black p-4">
+                    <p class="text-sm text-gray-600">OVERALL RANK</p>
+                    <p id="res-rank" class="text-3xl font-bold text-blue-800"></p>
+                </div>
+            </div>
+
+            <div class="absolute bottom-10 left-10 right-10 flex justify-between items-end border-t-2 border-black pt-4">
+                <div class="text-center">
+                    <div id="qrcode" class="mb-2"></div>
+                    <p class="text-xs text-gray-500 font-sans">Scan to Validate Result</p>
+                </div>
+                <div class="text-right">
+                    <div class="h-12 w-40 mb-2 border-b border-gray-400"></div>
+                    <p class="font-bold">Controller of Examinations</p>
+                    <p class="text-sm" id="print-date"></p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // --- 1. CONFIGURATION ---
+        const ADMIN_PASS = "Rajganj@020240";
+        const SESSION_DURATION = 30 * 60 * 1000; // 30 minutes
+        let sessionTimer;
+
+        // --- 2. NAVIGATION LOGIC ---
+        function showSection(id) {
+            document.querySelectorAll('section').forEach(sec => sec.classList.add('hidden-section'));
+            document.getElementById(id).classList.remove('hidden-section');
+            if(id !== 'admin-section') document.getElementById('search-section').classList.remove('hidden-section');
+            if(id === 'result-view') {
+                 document.getElementById('search-section').classList.add('hidden-section');
+                 document.getElementById('result-view').classList.remove('hidden-section');
+            }
+        }
+
+        // --- 3. AUTHENTICATION & SESSION ---
+        function checkAdminSession() {
+            const loginTime = localStorage.getItem('loginTime');
+            if (loginTime && (Date.now() - loginTime < SESSION_DURATION)) {
+                refreshSession();
+                showSection('admin-section');
+                document.getElementById('logoutBtn').classList.remove('hidden-section');
+            } else {
+                showSection('login-section');
+            }
+        }
+
+        function handleLogin() {
+            const pass = document.getElementById('adminPass').value;
+            if (pass === ADMIN_PASS) {
+                refreshSession();
+                showSection('admin-section');
+                document.getElementById('logoutBtn').classList.remove('hidden-section');
+                document.getElementById('adminPass').value = ''; // clear pass
+            } else {
+                document.getElementById('loginError').innerText = "Invalid Password!";
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('loginTime');
+            location.reload();
+        }
+
+        function refreshSession() {
+            localStorage.setItem('loginTime', Date.now());
+            // Restart visual countdown logic if needed
+        }
+
+        // Reset timer on activity
+        document.body.addEventListener('mousemove', () => {
+            if(localStorage.getItem('loginTime')) localStorage.setItem('loginTime', Date.now());
+        });
+
+        // --- 4. DATA HANDLING (ADMIN) ---
+        function autoCalculate() {
+            const correct = parseInt(document.getElementById('correctAns').value) || 0;
+            const incorrect = parseInt(document.getElementById('incorrectAns').value) || 0;
+            const total = parseInt(document.getElementById('totalMarks').value) || 100;
+            
+            const obtained = (correct * 1) - (incorrect * 1); // +1 / -1 Scheme
+            const percentage = ((obtained / total) * 100).toFixed(2);
+            
+            document.getElementById('obtainedMarks').value = obtained;
+            document.getElementById('percentage').value = percentage + "%";
+        }
+
+        function addResult(e) {
+            e.preventDefault();
+            
+            // 1. Get Form Data
+            const student = {
+                id: Date.now(),
+                institution: document.getElementById('instName').value,
+                exam: document.getElementById('examName').value,
+                year: document.getElementById('examYear').value,
+                name: document.getElementById('stuName').value,
+                roll: document.getElementById('rollNo').value,
+                totalQ: document.getElementById('totalQ').value,
+                totalMarks: document.getElementById('totalMarks').value,
+                correct: document.getElementById('correctAns').value,
+                incorrect: document.getElementById('incorrectAns').value,
+                obtained: document.getElementById('obtainedMarks').value,
+                percentage: document.getElementById('percentage').value,
+                attempted: parseInt(document.getElementById('correctAns').value) + parseInt(document.getElementById('incorrectAns').value)
+            };
+
+            // 2. Save to LocalStorage
+            let students = JSON.parse(localStorage.getItem('students') || "[]");
+            
+            // Remove existing if overwriting (optional logic), here we just push
+            students.push(student);
+
+            // 3. Sort by Marks for Ranking
+            students.sort((a, b) => b.obtained - a.obtained);
+
+            // 4. Assign Rank
+            students = students.map((s, index) => ({...s, rank: index + 1}));
+
+            localStorage.setItem('students', JSON.stringify(students));
+            
+            alert("Result Added Successfully!");
+            document.getElementById('stuName').value = "";
+            document.getElementById('rollNo').value = "";
+            document.getElementById('obtainedMarks').value = "";
+            document.getElementById('percentage').value = "";
+            // Keep Institution name for hassle-free entry
+        }
+
+        function clearData() {
+            if(confirm("Delete all data?")) localStorage.removeItem('students');
+        }
+
+        // --- 5. SEARCH & RENDER ---
+        function searchResult() {
+            const roll = document.getElementById('searchRoll').value;
+            const name = document.getElementById('searchName').value.toLowerCase();
+            const students = JSON.parse(localStorage.getItem('students') || "[]");
+
+            const found = students.find(s => 
+                (roll && s.roll === roll) || 
+                (name && s.name.toLowerCase() === name)
+            );
+
+            if (found) {
+                renderCertificate(found);
+                showSection('result-view');
+            } else {
+                alert("Student not found or result not live yet.");
+            }
+        }
+
+        function renderCertificate(data) {
+            document.getElementById('res-inst').innerText = data.institution;
+            document.getElementById('res-exam').innerText = data.exam;
+            document.getElementById('res-year').innerText = data.year;
+            document.getElementById('res-name').innerText = data.name;
+            document.getElementById('res-roll').innerText = data.roll;
+            
+            document.getElementById('res-tq').innerText = data.totalQ;
+            document.getElementById('res-ta').innerText = data.attempted;
+            document.getElementById('res-ca').innerText = data.correct;
+            document.getElementById('res-ia').innerText = data.incorrect;
+            
+            document.getElementById('res-om').innerText = data.obtained;
+            document.getElementById('res-tm').innerText = data.totalMarks;
+            document.getElementById('res-perc').innerText = data.percentage;
+            document.getElementById('res-rank').innerText = "#" + data.rank;
+            document.getElementById('print-date').innerText = new Date().toLocaleDateString();
+
+            // Generate QR
+            document.getElementById('qrcode').innerHTML = "";
+            
+            // QR Content: Formatted String
+            const qrText = `Name: ${data.name}\nRoll: ${data.roll}\nScore: ${data.obtained}/${data.totalMarks}\nRank: ${data.rank}\nVerified By: Admin`;
+            
+            new QRCode(document.getElementById("qrcode"), {
+                text: qrText,
+                width: 100,
+                height: 100
+            });
+        }
+
+        // --- 6. EXPORT & SHARE ---
+        function downloadJPG() {
+            const element = document.getElementById('certificate');
+            html2canvas(element, { scale: 3 }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `Result_${document.getElementById('res-name').innerText}.jpg`;
+                link.href = canvas.toDataURL("image/jpeg", 1.0);
+                link.click();
+            });
+        }
+
+        async function shareResult() {
+            const element = document.getElementById('certificate');
+            const canvas = await html2canvas(element, { scale: 2 });
+            
+            canvas.toBlob(async (blob) => {
+                const file = new File([blob], "result.jpg", { type: "image/jpeg" });
+                if (navigator.share) {
+                    try {
+                        await navigator.share({
+                            title: 'Exam Result',
+                            text: `Result for ${document.getElementById('res-name').innerText}`,
+                            files: [file]
+                        });
+                    } catch (err) { console.error(err); }
+                } else {
+                    alert("Sharing not supported on this browser. Please download the image.");
+                }
+            });
+        }
+
+        // Initialize
+        showSection('search-section');
+    </script>
+</body>
+</html>
+
