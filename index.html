@@ -1,0 +1,2993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ResultScope | Result Hosting Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+
+        /* ===== A4 PAPER ===== */
+        .a4-paper {
+            width: 794px;
+            min-height: 1123px;
+            background: white;
+            margin: 0 auto;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+            display: none;
+            position: relative;
+            overflow: hidden;
+            filter: saturate(0.82);
+        }
+
+        @media print {
+            body * { visibility: hidden; }
+            #result-container, #result-container * { visibility: visible; }
+            #result-container {
+                position: fixed !important;
+                left: 0 !important; top: 0 !important;
+                width: 794px !important;
+                box-shadow: none !important;
+                display: block !important;
+                margin: 0 !important;
+            }
+            @page { size: A4 portrait; margin: 0; }
+        }
+
+        /* ===== THEME SYSTEM ===== */
+        :root {
+            --primary: #1e3a5f; --primary-mid: #1d4ed8; --primary-light: #3b82f6;
+            --accent: #1e40af; --bg-body: #f3f4f6; --bg-card: #ffffff;
+            --btn-primary-bg: #1d4ed8; --btn-primary-hover: #1e40af;
+        }
+        body.theme-purple { --primary:#3b0764;--primary-mid:#7c3aed;--primary-light:#8b5cf6;--accent:#6d28d9;--bg-body:#f5f3ff;--btn-primary-bg:#7c3aed;--btn-primary-hover:#6d28d9; }
+        body.theme-green  { --primary:#14532d;--primary-mid:#16a34a;--primary-light:#22c55e;--accent:#15803d;--bg-body:#f0fdf4;--btn-primary-bg:#16a34a;--btn-primary-hover:#15803d; }
+        body.theme-red    { --primary:#7f1d1d;--primary-mid:#dc2626;--primary-light:#ef4444;--accent:#b91c1c;--bg-body:#fff5f5;--btn-primary-bg:#dc2626;--btn-primary-hover:#b91c1c; }
+        body.theme-teal   { --primary:#134e4a;--primary-mid:#0d9488;--primary-light:#14b8a6;--accent:#0f766e;--bg-body:#f0fdfa;--btn-primary-bg:#0d9488;--btn-primary-hover:#0f766e; }
+        body.theme-dark   { --primary:#0f172a;--primary-mid:#334155;--primary-light:#64748b;--accent:#475569;--bg-body:#1e293b;--bg-card:#1e293b;--btn-primary-bg:#334155;--btn-primary-hover:#475569; }
+        body.theme-dark #search-section, body.theme-dark .bg-white { background-color:#1e293b!important;color:#e2e8f0; }
+        body.theme-orange { --primary:#7c2d12;--primary-mid:#ea580c;--primary-light:#f97316;--accent:#c2410c;--bg-body:#fff7ed;--btn-primary-bg:#ea580c;--btn-primary-hover:#c2410c; }
+        body.theme-rose   { --primary:#881337;--primary-mid:#e11d48;--primary-light:#f43f5e;--accent:#be123c;--bg-body:#fff1f2;--btn-primary-bg:#e11d48;--btn-primary-hover:#be123c; }
+        body.theme-indigo { --primary:#312e81;--primary-mid:#4f46e5;--primary-light:#6366f1;--accent:#4338ca;--bg-body:#eef2ff;--btn-primary-bg:#4f46e5;--btn-primary-hover:#4338ca; }
+
+        body { background-color: var(--bg-body); }
+        nav.app-nav { background-color: var(--primary) !important; }
+
+        /* ===== RESULT CARD LAYOUTS ===== */
+
+        /* Layout 1 — Classic Premium */
+        .layout-classic .rc-header {
+            background: linear-gradient(135deg, #0f2557 0%, #1e3a8a 60%, #1d4ed8 100%);
+            padding: 36px 40px 28px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        .layout-classic .rc-header::before {
+            content:'';position:absolute;top:-60px;right:-60px;
+            width:200px;height:200px;border-radius:50%;
+            background:rgba(255,255,255,0.06);
+        }
+        .layout-classic .rc-header::after {
+            content:'';position:absolute;bottom:-40px;left:-40px;
+            width:160px;height:160px;border-radius:50%;
+            background:rgba(255,255,255,0.04);
+        }
+        .layout-classic .rc-inst-name { font-size:28px;font-weight:900;font-family:'Playfair Display',serif;letter-spacing:1px;text-transform:uppercase; }
+        .layout-classic .rc-inst-addr { font-size:12px;opacity:0.8;margin-top:4px; }
+        .layout-classic .rc-exam-badge {
+            display:inline-block;margin-top:14px;
+            background:rgba(255,255,255,0.18);backdrop-filter:blur(4px);
+            border:1px solid rgba(255,255,255,0.3);
+            padding:5px 18px;border-radius:999px;
+            font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+        }
+        .layout-classic .rc-student-info {
+            margin:0 40px 24px;padding:20px 24px;
+            background:#f8faff;border:1px solid #e0e8ff;border-radius:10px;
+            display:grid;grid-template-columns:1fr 1fr;gap:12px 24px;
+        }
+        .layout-classic .rc-info-label { font-size:10px;font-weight:700;text-transform:uppercase;color:#6b7280;letter-spacing:1px; }
+        .layout-classic .rc-info-value { font-size:15px;font-weight:700;color:#1e293b;margin-top:2px; }
+        .layout-classic .rc-body { padding: 0 40px 120px; }
+        .layout-classic .rc-table thead { background:linear-gradient(90deg,#1e3a8a,#1d4ed8); color:white; }
+        .layout-classic .rc-table th { padding:10px 12px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase; }
+        .layout-classic .rc-table td { padding:9px 12px;border-bottom:1px solid #f1f5f9;font-size:13px; }
+        .layout-classic .rc-table tr:nth-child(even) td { background:#f8faff; }
+        .layout-classic .rc-tfoot td { background:linear-gradient(90deg,#eff6ff,#dbeafe)!important;font-weight:700;border-top:2px solid #3b82f6; }
+        .layout-classic .rc-grade-badge {
+            display:inline-flex;align-items:center;gap:8px;
+            background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:white;
+            padding:10px 24px;border-radius:999px;font-size:16px;font-weight:900;
+            box-shadow:0 4px 16px rgba(30,58,138,0.35);margin-top:16px;
+        }
+        .layout-classic .rc-footer {
+            position:absolute;bottom:0;left:0;right:0;
+            padding:16px 40px;border-top:2px solid #e2e8f0;
+            display:flex;justify-content:space-between;align-items:flex-end;
+            background:white;
+        }
+        .layout-classic .rc-watermark {
+            position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+            pointer-events:none;opacity:0.025;font-size:320px;color:#1e3a8a;
+        }
+
+        /* Layout 2 — Modern Gradient */
+        .layout-modern .rc-header {
+            background: linear-gradient(135deg, #4c1d95 0%, #7c3aed 50%, #ec4899 100%);
+            padding: 36px 40px 28px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        .layout-modern .rc-header::before {
+            content:'';position:absolute;top:-80px;right:-80px;
+            width:260px;height:260px;border-radius:50%;
+            background:rgba(255,255,255,0.08);
+        }
+        .layout-modern .rc-header::after {
+            content:'';position:absolute;bottom:-60px;left:20px;
+            width:200px;height:200px;border-radius:50%;
+            background:rgba(255,255,255,0.05);
+        }
+        .layout-modern .rc-inst-name { font-size:27px;font-weight:900;font-family:'Playfair Display',serif;letter-spacing:1px;text-transform:uppercase; }
+        .layout-modern .rc-inst-addr { font-size:12px;opacity:0.8;margin-top:4px; }
+        .layout-modern .rc-exam-badge {
+            display:inline-block;margin-top:14px;
+            background:rgba(255,255,255,0.22);backdrop-filter:blur(6px);
+            border:1px solid rgba(255,255,255,0.4);
+            padding:5px 18px;border-radius:999px;
+            font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+        }
+        .layout-modern .rc-student-info {
+            margin:0 40px 24px;padding:0;
+            display:grid;grid-template-columns:1fr 1fr;gap:0;
+            border-radius:12px;overflow:hidden;border:1px solid #e9d5ff;
+        }
+        .layout-modern .rc-info-item {
+            padding:14px 18px;background:white;border-bottom:1px solid #f3e8ff;border-right:1px solid #f3e8ff;
+        }
+        .layout-modern .rc-info-label { font-size:10px;font-weight:700;text-transform:uppercase;color:#7c3aed;letter-spacing:1px; }
+        .layout-modern .rc-info-value { font-size:15px;font-weight:700;color:#1e1b4b;margin-top:2px; }
+        .layout-modern .rc-body { padding: 0 40px 120px; }
+        .layout-modern .rc-table thead { background:linear-gradient(90deg,#4c1d95,#7c3aed); color:white; }
+        .layout-modern .rc-table th { padding:10px 12px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase; }
+        .layout-modern .rc-table td { padding:9px 12px;border-bottom:1px solid #f5f3ff;font-size:13px; }
+        .layout-modern .rc-table tr:nth-child(even) td { background:#faf5ff; }
+        .layout-modern .rc-tfoot td { background:linear-gradient(90deg,#faf5ff,#ede9fe)!important;font-weight:700;border-top:2px solid #7c3aed; }
+        .layout-modern .rc-grade-badge {
+            display:inline-flex;align-items:center;gap:8px;
+            background:linear-gradient(135deg,#4c1d95,#ec4899);color:white;
+            padding:10px 24px;border-radius:999px;font-size:16px;font-weight:900;
+            box-shadow:0 4px 16px rgba(124,58,237,0.4);margin-top:16px;
+        }
+        .layout-modern .rc-footer {
+            position:absolute;bottom:0;left:0;right:0;
+            padding:16px 40px;border-top:2px solid #e9d5ff;
+            display:flex;justify-content:space-between;align-items:flex-end;
+            background:linear-gradient(90deg,#fdf4ff,#fff);
+        }
+        .layout-modern .rc-watermark {
+            position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+            pointer-events:none;opacity:0.03;font-size:320px;color:#7c3aed;
+        }
+
+        /* Layout 3 — Gold Certificate */
+        .layout-certificate {
+            border: 14px solid #b8860b;
+            box-shadow: 0 0 0 4px #f5c842, 0 0 0 6px #b8860b, 0 12px 40px rgba(0,0,0,0.25) !important;
+        }
+        .layout-certificate .rc-header {
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            padding: 36px 40px 28px;
+            color: white;
+            position: relative;
+            text-align: center;
+        }
+        .layout-certificate .rc-header::before {
+            content: '⭑ ⭑ ⭑';
+            position: absolute;top: 14px;left: 50%;transform: translateX(-50%);
+            font-size: 18px;color: #f5c842;letter-spacing: 12px;
+        }
+        .layout-certificate .rc-inst-name {
+            font-size:30px;font-weight:900;font-family:'Playfair Display',serif;
+            letter-spacing:2px;text-transform:uppercase;
+            background:linear-gradient(90deg,#f5c842,#ffd700,#f5c842);
+            -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+            margin-top: 20px;
+        }
+        .layout-certificate .rc-inst-addr { font-size:12px;opacity:0.7;margin-top:4px;color:#e2c97e; }
+        .layout-certificate .rc-exam-badge {
+            display:inline-block;margin-top:14px;
+            background:linear-gradient(90deg,#b8860b,#f5c842,#b8860b);
+            padding:5px 20px;border-radius:3px;
+            font-size:11px;font-weight:900;letter-spacing:3px;text-transform:uppercase;color:#1a1a2e;
+        }
+        .layout-certificate .rc-student-info {
+            margin:24px 40px 24px;padding:20px 24px;
+            background:linear-gradient(135deg,#fffdf0,#fff8e1);
+            border:2px solid #f5c842;border-radius:8px;
+            display:grid;grid-template-columns:1fr 1fr;gap:12px 24px;
+        }
+        .layout-certificate .rc-info-label { font-size:10px;font-weight:700;text-transform:uppercase;color:#92400e;letter-spacing:1px; }
+        .layout-certificate .rc-info-value { font-size:15px;font-weight:700;color:#1c1917;margin-top:2px; }
+        .layout-certificate .rc-body { padding: 0 40px 120px; }
+        .layout-certificate .rc-table thead { background:linear-gradient(90deg,#1a1a2e,#0f3460); color:#f5c842; }
+        .layout-certificate .rc-table th { padding:10px 12px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase; }
+        .layout-certificate .rc-table td { padding:9px 12px;border-bottom:1px solid #fef3c7;font-size:13px; }
+        .layout-certificate .rc-table tr:nth-child(even) td { background:#fffdf0; }
+        .layout-certificate .rc-tfoot td { background:linear-gradient(90deg,#fffdf0,#fef3c7)!important;font-weight:700;border-top:2px solid #b8860b; }
+        .layout-certificate .rc-grade-badge {
+            display:inline-flex;align-items:center;gap:8px;
+            background:linear-gradient(135deg,#92400e,#d97706,#f59e0b);color:white;
+            padding:10px 24px;border-radius:4px;font-size:16px;font-weight:900;
+            box-shadow:0 4px 16px rgba(146,64,14,0.4);margin-top:16px;
+        }
+        .layout-certificate .rc-footer {
+            position:absolute;bottom:0;left:0;right:0;
+            padding:16px 40px;border-top:2px solid #f5c842;
+            display:flex;justify-content:space-between;align-items:flex-end;
+            background:linear-gradient(90deg,#fffdf0,#fff8e1);
+        }
+        .layout-certificate .rc-footer .controller-label { color:#92400e;font-weight:700; }
+        .layout-certificate .rc-watermark {
+            position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+            pointer-events:none;opacity:0.03;font-size:280px;color:#b8860b;
+        }
+
+        /* ====================================================
+           LAYOUT THEMED — Shared base for layouts 4-20
+           Each specific layout sets CSS custom properties
+        ==================================================== */
+        .layout-themed .rc-header {
+            background: var(--lyt-hdr);
+            padding: 36px 40px 28px; color: white;
+            position: relative; overflow: hidden;
+        }
+        .layout-themed .rc-header::before {
+            content:''; position:absolute; top:-60px; right:-60px;
+            width:220px; height:220px; border-radius:50%;
+            background:rgba(255,255,255,0.06);
+        }
+        .layout-themed .rc-header::after {
+            content:''; position:absolute; bottom:-50px; left:-40px;
+            width:170px; height:170px; border-radius:50%;
+            background:rgba(255,255,255,0.04);
+        }
+        .layout-themed .rc-inst-name { font-size:28px;font-weight:900;font-family:'Playfair Display',serif;letter-spacing:1px;text-transform:uppercase; }
+        .layout-themed .rc-inst-addr { font-size:12px;opacity:0.8;margin-top:4px; }
+        .layout-themed .rc-exam-badge {
+            display:inline-block; margin-top:14px;
+            background: var(--lyt-badge, rgba(255,255,255,0.18));
+            border:1px solid rgba(255,255,255,0.3);
+            padding:5px 18px; border-radius:999px;
+            font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+            color: var(--lyt-badge-clr, white);
+        }
+        .layout-themed .rc-student-info {
+            margin: 0 40px 24px; padding: 20px 24px;
+            background: var(--lyt-info-bg); border: 1.5px solid var(--lyt-info-bdr);
+            border-radius: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px;
+        }
+        .layout-themed .rc-info-label { font-size:10px;font-weight:700;text-transform:uppercase;color:var(--lyt-lbl);letter-spacing:1px; }
+        .layout-themed .rc-info-value { font-size:15px;font-weight:700;color:var(--lyt-val);margin-top:2px; }
+        .layout-themed .rc-body { padding: 0 40px 120px; }
+        .layout-themed .rc-table { width:100%;border-collapse:collapse;table-layout:fixed; }
+        .layout-themed .rc-table thead { background: var(--lyt-thead); color: var(--lyt-thead-txt, white); }
+        .layout-themed .rc-table th { padding:11px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase; }
+        .layout-themed .rc-table td { padding:10px 14px;border-bottom:1px solid #f0f0f0;font-size:13px;color:var(--lyt-val); }
+        .layout-themed .rc-table tr:nth-child(even) td { background: var(--lyt-alt); }
+        .layout-themed .rc-tfoot td { background: var(--lyt-tfoot) !important;font-weight:700;font-size:13px;border-top:2px solid var(--lyt-accent);color:var(--lyt-val) !important; }
+        .layout-themed .rc-grade-badge {
+            display:inline-flex;align-items:center;gap:8px;
+            background: var(--lyt-badge-grad); color: white;
+            padding:10px 24px;border-radius:999px;font-size:15px;font-weight:900;
+            box-shadow: 0 4px 16px var(--lyt-shadow); margin-top:16px;
+        }
+        .layout-themed .rc-footer {
+            position:absolute;bottom:0;left:0;right:0;
+            padding:16px 40px;border-top:2px solid var(--lyt-ftr-bdr);
+            display:flex;justify-content:space-between;align-items:flex-end;
+            background: var(--lyt-ftr-bg);
+        }
+        .layout-themed .rc-watermark {
+            position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+            pointer-events:none;opacity:0.025;font-size:320px;color:var(--lyt-watermark);
+        }
+
+        /* 4. Emerald Scholar */
+        .layout-emerald{--lyt-hdr:linear-gradient(135deg,#064e3b,#065f46,#047857);--lyt-info-bg:#f0fdf4;--lyt-info-bdr:#a7f3d0;--lyt-lbl:#065f46;--lyt-val:#1c1917;--lyt-thead:linear-gradient(90deg,#064e3b,#047857);--lyt-thead-txt:white;--lyt-alt:#f0fdf4;--lyt-tfoot:linear-gradient(90deg,#f0fdf4,#d1fae5);--lyt-accent:#10b981;--lyt-badge-grad:linear-gradient(135deg,#064e3b,#10b981);--lyt-shadow:rgba(6,78,59,0.3);--lyt-ftr-bdr:#a7f3d0;--lyt-ftr-bg:white;--lyt-watermark:#065f46;}
+        /* 5. Crimson Honor */
+        .layout-crimson{--lyt-hdr:linear-gradient(135deg,#7f1d1d,#991b1b,#b91c1c);--lyt-info-bg:#fff5f5;--lyt-info-bdr:#fecaca;--lyt-lbl:#991b1b;--lyt-val:#1c1917;--lyt-thead:linear-gradient(90deg,#7f1d1d,#b91c1c);--lyt-thead-txt:white;--lyt-alt:#fff5f5;--lyt-tfoot:linear-gradient(90deg,#fff5f5,#fee2e2);--lyt-accent:#ef4444;--lyt-badge-grad:linear-gradient(135deg,#7f1d1d,#ef4444);--lyt-shadow:rgba(127,29,29,0.3);--lyt-ftr-bdr:#fecaca;--lyt-ftr-bg:white;--lyt-watermark:#991b1b;}
+        /* 6. Midnight Galaxy */
+        .layout-midnight{--lyt-hdr:linear-gradient(135deg,#020617,#0f172a,#1e293b);--lyt-badge:rgba(6,182,212,0.35);--lyt-info-bg:#0f172a;--lyt-info-bdr:#1e40af;--lyt-lbl:#67e8f9;--lyt-val:#e2e8f0;--lyt-thead:linear-gradient(90deg,#020617,#0f172a);--lyt-thead-txt:#67e8f9;--lyt-alt:#1e293b;--lyt-tfoot:linear-gradient(90deg,#0f172a,#1e293b);--lyt-accent:#06b6d4;--lyt-badge-grad:linear-gradient(135deg,#0f172a,#06b6d4);--lyt-shadow:rgba(6,182,212,0.35);--lyt-ftr-bdr:#1e293b;--lyt-ftr-bg:#0f172a;--lyt-watermark:#1e40af;}
+        .layout-midnight .rc-footer{color:#d1d5db;}
+        .layout-midnight .rc-table td{border-bottom-color:#1e293b;}
+        /* 7. Saffron Warm */
+        .layout-saffron{--lyt-hdr:linear-gradient(135deg,#78350f,#92400e,#d97706);--lyt-info-bg:#fffbeb;--lyt-info-bdr:#fde68a;--lyt-lbl:#92400e;--lyt-val:#1c1917;--lyt-thead:linear-gradient(90deg,#78350f,#d97706);--lyt-thead-txt:white;--lyt-alt:#fffbeb;--lyt-tfoot:linear-gradient(90deg,#fffbeb,#fef3c7);--lyt-accent:#f59e0b;--lyt-badge-grad:linear-gradient(135deg,#78350f,#f59e0b);--lyt-shadow:rgba(120,53,15,0.3);--lyt-ftr-bdr:#fde68a;--lyt-ftr-bg:#fffbeb;--lyt-watermark:#92400e;}
+        /* 8. Rose Bloom */
+        .layout-rose{--lyt-hdr:linear-gradient(135deg,#881337,#be123c,#f43f5e);--lyt-info-bg:#fff1f2;--lyt-info-bdr:#fecdd3;--lyt-lbl:#be123c;--lyt-val:#1c1917;--lyt-thead:linear-gradient(90deg,#881337,#e11d48);--lyt-thead-txt:white;--lyt-alt:#fff1f2;--lyt-tfoot:linear-gradient(90deg,#fff1f2,#ffe4e6);--lyt-accent:#f43f5e;--lyt-badge-grad:linear-gradient(135deg,#881337,#f43f5e);--lyt-shadow:rgba(136,19,55,0.3);--lyt-ftr-bdr:#fecdd3;--lyt-ftr-bg:white;--lyt-watermark:#be123c;}
+        /* 9. Ocean Breeze */
+        .layout-ocean{--lyt-hdr:linear-gradient(135deg,#0c4a6e,#0369a1,#0284c7);--lyt-info-bg:#f0f9ff;--lyt-info-bdr:#bae6fd;--lyt-lbl:#0369a1;--lyt-val:#1c1917;--lyt-thead:linear-gradient(90deg,#0c4a6e,#0284c7);--lyt-thead-txt:white;--lyt-alt:#f0f9ff;--lyt-tfoot:linear-gradient(90deg,#f0f9ff,#e0f2fe);--lyt-accent:#0ea5e9;--lyt-badge-grad:linear-gradient(135deg,#0c4a6e,#0ea5e9);--lyt-shadow:rgba(12,74,110,0.3);--lyt-ftr-bdr:#bae6fd;--lyt-ftr-bg:white;--lyt-watermark:#0369a1;}
+        /* 10. Carbon Pro */
+        .layout-carbon{--lyt-hdr:linear-gradient(135deg,#111827,#1f2937,#374151);--lyt-badge:rgba(59,130,246,0.4);--lyt-info-bg:#1f2937;--lyt-info-bdr:#374151;--lyt-lbl:#60a5fa;--lyt-val:#f9fafb;--lyt-thead:linear-gradient(90deg,#111827,#1f2937);--lyt-thead-txt:#60a5fa;--lyt-alt:#374151;--lyt-tfoot:linear-gradient(90deg,#1f2937,#374151);--lyt-accent:#3b82f6;--lyt-badge-grad:linear-gradient(135deg,#1f2937,#3b82f6);--lyt-shadow:rgba(59,130,246,0.35);--lyt-ftr-bdr:#374151;--lyt-ftr-bg:#111827;--lyt-watermark:#374151;}
+        .layout-carbon .rc-footer{color:#d1d5db;}
+        .layout-carbon .rc-table td{border-bottom-color:#374151;}
+        .layout-carbon .rc-tfoot td{color:#f9fafb !important;}
+        /* 11. Mint Fresh */
+        .layout-mint{--lyt-hdr:linear-gradient(135deg,#022c22,#064e3b,#10b981);--lyt-info-bg:#ecfdf5;--lyt-info-bdr:#6ee7b7;--lyt-lbl:#059669;--lyt-val:#1c1917;--lyt-thead:linear-gradient(90deg,#022c22,#059669);--lyt-thead-txt:white;--lyt-alt:#ecfdf5;--lyt-tfoot:linear-gradient(90deg,#ecfdf5,#d1fae5);--lyt-accent:#34d399;--lyt-badge-grad:linear-gradient(135deg,#059669,#34d399);--lyt-shadow:rgba(5,150,105,0.3);--lyt-ftr-bdr:#6ee7b7;--lyt-ftr-bg:#f0fdf4;--lyt-watermark:#059669;}
+        /* 12. Burgundy Prestige */
+        .layout-burgundy{--lyt-hdr:linear-gradient(135deg,#4c0519,#7f1d1d,#9f1239);--lyt-badge:rgba(245,212,66,0.3);--lyt-info-bg:#fff7f7;--lyt-info-bdr:#fcd5d5;--lyt-lbl:#7f1d1d;--lyt-val:#1c1917;--lyt-thead:linear-gradient(90deg,#4c0519,#9f1239);--lyt-thead-txt:#fde68a;--lyt-alt:#fff7f7;--lyt-tfoot:linear-gradient(90deg,#fff7f7,#fee2e2);--lyt-accent:#9f1239;--lyt-badge-grad:linear-gradient(135deg,#4c0519,#9f1239,#e11d48);--lyt-shadow:rgba(76,5,25,0.35);--lyt-ftr-bdr:#fcd5d5;--lyt-ftr-bg:white;--lyt-watermark:#7f1d1d;}
+        /* 13. Slate Pro */
+        .layout-slate{--lyt-hdr:linear-gradient(135deg,#1e293b,#334155,#475569);--lyt-info-bg:#f8fafc;--lyt-info-bdr:#cbd5e1;--lyt-lbl:#64748b;--lyt-val:#1e293b;--lyt-thead:linear-gradient(90deg,#1e293b,#475569);--lyt-thead-txt:white;--lyt-alt:#f1f5f9;--lyt-tfoot:linear-gradient(90deg,#f1f5f9,#e2e8f0);--lyt-accent:#94a3b8;--lyt-badge-grad:linear-gradient(135deg,#1e293b,#64748b);--lyt-shadow:rgba(30,41,59,0.3);--lyt-ftr-bdr:#e2e8f0;--lyt-ftr-bg:white;--lyt-watermark:#475569;}
+        /* 14. Copper Bronze */
+        .layout-copper{--lyt-hdr:linear-gradient(135deg,#431407,#7c2d12,#c2410c);--lyt-info-bg:#fff7ed;--lyt-info-bdr:#fed7aa;--lyt-lbl:#9a3412;--lyt-val:#1c1917;--lyt-thead:linear-gradient(90deg,#431407,#c2410c);--lyt-thead-txt:#fed7aa;--lyt-alt:#fff7ed;--lyt-tfoot:linear-gradient(90deg,#fff7ed,#ffedd5);--lyt-accent:#c2410c;--lyt-badge-grad:linear-gradient(135deg,#431407,#ea580c,#fb923c);--lyt-shadow:rgba(67,20,7,0.35);--lyt-ftr-bdr:#fed7aa;--lyt-ftr-bg:white;--lyt-watermark:#7c2d12;}
+        /* 15. Lavender Dream */
+        .layout-lavender{--lyt-hdr:linear-gradient(135deg,#2e1065,#4c1d95,#6d28d9);--lyt-info-bg:#f5f3ff;--lyt-info-bdr:#ddd6fe;--lyt-lbl:#5b21b6;--lyt-val:#1e1b4b;--lyt-thead:linear-gradient(90deg,#2e1065,#6d28d9);--lyt-thead-txt:white;--lyt-alt:#f5f3ff;--lyt-tfoot:linear-gradient(90deg,#f5f3ff,#ede9fe);--lyt-accent:#7c3aed;--lyt-badge-grad:linear-gradient(135deg,#4c1d95,#8b5cf6);--lyt-shadow:rgba(46,16,101,0.3);--lyt-ftr-bdr:#ddd6fe;--lyt-ftr-bg:white;--lyt-watermark:#5b21b6;}
+        /* 16. Forest Deep */
+        .layout-forest{--lyt-hdr:linear-gradient(135deg,#052e16,#14532d,#15803d);--lyt-info-bg:#f0fdf4;--lyt-info-bdr:#86efac;--lyt-lbl:#14532d;--lyt-val:#1c1917;--lyt-thead:linear-gradient(90deg,#052e16,#15803d);--lyt-thead-txt:#bbf7d0;--lyt-alt:#f0fdf4;--lyt-tfoot:linear-gradient(90deg,#f0fdf4,#dcfce7);--lyt-accent:#16a34a;--lyt-badge-grad:linear-gradient(135deg,#052e16,#16a34a);--lyt-shadow:rgba(5,46,22,0.35);--lyt-ftr-bdr:#86efac;--lyt-ftr-bg:white;--lyt-watermark:#14532d;}
+        /* 17. Ruby Elite */
+        .layout-ruby{--lyt-hdr:linear-gradient(135deg,#4c0519,#be123c,#e11d48);--lyt-info-bg:#fff1f2;--lyt-info-bdr:#fda4af;--lyt-lbl:#9f1239;--lyt-val:#1c1917;--lyt-thead:linear-gradient(90deg,#4c0519,#e11d48);--lyt-thead-txt:white;--lyt-alt:#fff1f2;--lyt-tfoot:linear-gradient(90deg,#fff1f2,#ffe4e6);--lyt-accent:#e11d48;--lyt-badge-grad:linear-gradient(135deg,#4c0519,#be123c,#fb7185);--lyt-shadow:rgba(76,5,25,0.35);--lyt-ftr-bdr:#fda4af;--lyt-ftr-bg:white;--lyt-watermark:#be123c;}
+        /* 18. Indigo Steel */
+        .layout-indigo-steel{--lyt-hdr:linear-gradient(135deg,#1e1b4b,#312e81,#4338ca);--lyt-info-bg:#eef2ff;--lyt-info-bdr:#c7d2fe;--lyt-lbl:#4338ca;--lyt-val:#1e1b4b;--lyt-thead:linear-gradient(90deg,#1e1b4b,#4338ca);--lyt-thead-txt:white;--lyt-alt:#eef2ff;--lyt-tfoot:linear-gradient(90deg,#eef2ff,#e0e7ff);--lyt-accent:#6366f1;--lyt-badge-grad:linear-gradient(135deg,#1e1b4b,#6366f1);--lyt-shadow:rgba(30,27,75,0.3);--lyt-ftr-bdr:#c7d2fe;--lyt-ftr-bg:white;--lyt-watermark:#312e81;}
+        /* 19. Amber Harvest */
+        .layout-amber{--lyt-hdr:linear-gradient(135deg,#451a03,#92400e,#b45309);--lyt-badge:rgba(251,191,36,0.35);--lyt-info-bg:#fffbeb;--lyt-info-bdr:#fcd34d;--lyt-lbl:#92400e;--lyt-val:#1c1917;--lyt-thead:linear-gradient(90deg,#451a03,#b45309);--lyt-thead-txt:#fef3c7;--lyt-alt:#fffbeb;--lyt-tfoot:linear-gradient(90deg,#fffbeb,#fef3c7);--lyt-accent:#f59e0b;--lyt-badge-grad:linear-gradient(135deg,#92400e,#f59e0b,#fbbf24);--lyt-shadow:rgba(69,26,3,0.35);--lyt-ftr-bdr:#fcd34d;--lyt-ftr-bg:#fffbeb;--lyt-watermark:#92400e;}
+        /* 20. Monochrome Classic */
+        .layout-mono{--lyt-hdr:linear-gradient(135deg,#000000,#1f1f1f,#000000);--lyt-info-bg:#fafafa;--lyt-info-bdr:#d1d5db;--lyt-lbl:#6b7280;--lyt-val:#111827;--lyt-thead:linear-gradient(90deg,#000000,#374151);--lyt-thead-txt:white;--lyt-alt:#f9fafb;--lyt-tfoot:linear-gradient(90deg,#f3f4f6,#e5e7eb);--lyt-accent:#374151;--lyt-badge-grad:linear-gradient(135deg,#000000,#374151);--lyt-shadow:rgba(0,0,0,0.3);--lyt-ftr-bdr:#d1d5db;--lyt-ftr-bg:white;--lyt-watermark:#374151;}
+
+        /* ====== PORTAL SKINS ====== */
+        /* Skin 1: Default (defined via CSS variables above) */
+        /* Skin 2: Academic Parchment */
+        body.skin-parchment { background-color:#fdf8f0 !important; }
+        body.skin-parchment nav.app-nav { background:linear-gradient(135deg,#78350f,#92400e,#b45309) !important; }
+        body.skin-parchment .search-hero { background:linear-gradient(135deg,#78350f,#92400e,#d97706) !important; }
+        /* Skin 3: Clean Minimal */
+        body.skin-minimal { background-color:#f0f4f8 !important; }
+        body.skin-minimal nav.app-nav { background:linear-gradient(90deg,#1e293b,#334155) !important; }
+        body.skin-minimal .search-hero { background:linear-gradient(135deg,#1e293b,#334155,#475569) !important; }
+        /* Skin 4: Dark Pro */
+        body.skin-dark-pro { background-color:#0f172a !important; }
+        body.skin-dark-pro nav.app-nav { background:linear-gradient(90deg,#020617,#0f172a) !important; }
+        body.skin-dark-pro .search-hero { background:linear-gradient(135deg,#020617,#1e293b,#0f172a) !important; }
+        body.skin-dark-pro #search-section { background-color:#1e293b !important; }
+        body.skin-dark-pro #search-section * { color:#e2e8f0 !important; }
+        body.skin-dark-pro #search-section input { background:#0f172a !important; color:#e2e8f0 !important; border-color:#334155 !important; }
+        /* Skin 5: Festive Vivid */
+        body.skin-festive { background-color:#fdf4ff !important; }
+        body.skin-festive nav.app-nav { background:linear-gradient(135deg,#4c1d95,#7c3aed,#ec4899) !important; }
+        body.skin-festive .search-hero { background:linear-gradient(135deg,#4c1d95,#7c3aed,#ec4899,#f43f5e) !important; }
+        /* Portal skin picker */
+        .skin-card { cursor:pointer;border:3px solid transparent;border-radius:12px;padding:10px;text-align:center;transition:all 0.2s;background:white; }
+        .skin-card:hover { transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,0.15); }
+        .skin-card.selected { border-color:#1d4ed8;box-shadow:0 0 0 3px rgba(29,78,216,0.2); }
+        .skin-preview { width:100%;height:52px;border-radius:8px;margin-bottom:6px;overflow:hidden;position:relative; }
+
+        /* Competition card score boxes */
+        .score-box {
+            border-radius: 12px;
+            padding: 20px 16px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .score-box::before {
+            content:'';position:absolute;top:-20px;right:-20px;
+            width:80px;height:80px;border-radius:50%;
+            background:rgba(255,255,255,0.15);
+        }
+        .score-box-total { background:linear-gradient(135deg,#1e3a8a,#3b82f6); }
+        .score-box-correct { background:linear-gradient(135deg,#065f46,#10b981); }
+        .score-box-wrong { background:linear-gradient(135deg,#7f1d1d,#ef4444); }
+
+        /* Theme cards in settings */
+        .theme-card { cursor:pointer;border:3px solid transparent;border-radius:10px;padding:10px;text-align:center;transition:all 0.2s; }
+        .theme-card:hover { transform:translateY(-2px);box-shadow:0 4px 15px rgba(0,0,0,0.15); }
+        .theme-card.selected { border-color:#000;box-shadow:0 0 0 3px rgba(0,0,0,0.2); }
+        .theme-swatch { width:100%;height:40px;border-radius:6px;margin-bottom:6px; }
+
+        /* Layout picker cards */
+        .layout-card { cursor:pointer;border:3px solid transparent;border-radius:10px;padding:12px;transition:all 0.2s; }
+        .layout-card:hover { transform:translateY(-2px);box-shadow:0 4px 15px rgba(0,0,0,0.15); }
+        .layout-card.selected { border-color:#1d4ed8;box-shadow:0 0 0 3px rgba(29,78,216,0.25); }
+        .layout-preview { width:100%;height:72px;border-radius:6px;margin-bottom:8px;overflow:hidden;position:relative; }
+
+        /* Subject table inputs */
+        .subject-row-input { width:80px;border:1px solid #d1d5db;border-radius:4px;padding:4px 6px;text-align:center; }
+        .subject-row-input:focus { outline:2px solid var(--primary-light); }
+
+        /* Search section style */
+        .search-hero {
+            background: linear-gradient(135deg, #0f2557 0%, #1e3a8a 60%, #1d4ed8 100%);
+            border-radius: 16px;
+            color: white;
+            padding: 40px;
+        }
+        .search-input-styled {
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            border-radius: 10px;
+            padding: 14px 20px;
+            width: 100%;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.2s;
+        }
+        .search-input-styled::placeholder { color: rgba(255,255,255,0.6); }
+        .search-input-styled:focus { border-color:rgba(255,255,255,0.6);background:rgba(255,255,255,0.18); }
+
+        /* Paused section */
+        .paused-card {
+            background: linear-gradient(135deg, #78350f, #d97706);
+            border-radius: 16px;
+            color: white;
+        }
+
+        .loader { border:4px solid #f3f3f3;border-top:4px solid #3498db;border-radius:50%;width:30px;height:30px;animation:spin 1s linear infinite; }
+        @keyframes spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+
+        /* Admin modal tabs */
+        .tab-btn-active { background: #1e3a8a !important; color: white !important; }
+
+        /* Scrollbar for admin modal */
+        .admin-content::-webkit-scrollbar { width: 6px; }
+        .admin-content::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    </style>
+</head>
+<body class="text-gray-800">
+
+<!-- ===== NAV ===== -->
+<nav class="text-white shadow-lg relative z-20 app-nav" style="background-color:#1e3a5f">
+    <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+            <div class="bg-white bg-opacity-20 p-2 rounded-lg">
+                <i class="fas fa-graduation-cap text-xl"></i>
+            </div>
+            <div>
+                <span id="nav-inst-name" class="text-lg font-bold tracking-wide block leading-tight">ResultScope</span>
+                <span class="text-xs opacity-70">Digital Result Platform</span>
+            </div>
+        </div>
+        <div>
+            <button onclick="toggleAdminPanel()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg text-sm font-semibold transition border border-white border-opacity-30">
+                <i class="fas fa-user-shield mr-2"></i>Admin
+            </button>
+        </div>
+    </div>
+</nav>
+
+<main class="container mx-auto px-4 py-8 relative z-10">
+
+    <!-- SEARCH SECTION -->
+    <section id="search-section" class="max-w-lg mx-auto mb-8">
+        <div class="search-hero text-center shadow-2xl">
+            <div class="mb-2 inline-block bg-white bg-opacity-20 p-4 rounded-full">
+                <i class="fas fa-search text-3xl"></i>
+            </div>
+            <h2 class="text-3xl font-bold mb-1 mt-3">Check Your Result</h2>
+            <p class="opacity-80 mb-6 text-sm">Select exam and enter your roll number or name to view your scorecard</p>
+            <div class="space-y-3">
+                <select id="search-exam" class="search-input-styled" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.35);color:white;-webkit-appearance:none;" onchange="updateSearchPlaceholder()">
+                    <option value="" style="color:#1e293b;background:white;">-- Select Exam --</option>
+                </select>
+                <input type="text" id="search-roll" placeholder="Enter Roll Number..." class="search-input-styled" onkeydown="if(event.key==='Enter') searchResult()">
+                <div style="display:flex;align-items:center;gap:8px;"><div style="flex:1;height:1px;background:rgba(255,255,255,0.25)"></div><span style="font-size:11px;opacity:0.7;letter-spacing:1px;font-weight:600">OR</span><div style="flex:1;height:1px;background:rgba(255,255,255,0.25)"></div></div>
+                <input type="text" id="search-name" placeholder="Search by Student Name..." class="search-input-styled" onkeydown="if(event.key==='Enter') searchByName()">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <button onclick="searchResult()" class="bg-white text-blue-900 font-bold py-3 rounded-xl hover:bg-blue-50 transition shadow-lg">
+                        <i class="fas fa-eye mr-2"></i>View by Roll
+                    </button>
+                    <button onclick="searchByName()" class="bg-white bg-opacity-20 text-white font-bold py-3 rounded-xl hover:bg-opacity-30 transition shadow-lg border border-white border-opacity-30">
+                        <i class="fas fa-user mr-2"></i>Search by Name
+                    </button>
+                </div>
+            </div>
+            <p id="search-error-msg" class="text-xs text-red-300 mt-3 hidden"><i class="fas fa-exclamation-circle mr-1"></i><span id="search-error-text"></span></p>
+        </div>
+    </section>
+
+    <!-- PAUSED MESSAGE -->
+    <section id="result-paused-section" class="hidden max-w-lg mx-auto mb-8">
+        <div class="paused-card text-center shadow-2xl p-10">
+            <div class="mb-4 bg-white bg-opacity-20 inline-block p-5 rounded-full">
+                <i class="fas fa-hourglass-half text-5xl"></i>
+            </div>
+            <h2 class="text-3xl font-bold mb-3">Result Coming Soon</h2>
+            <p class="opacity-90 mb-2">Roll Number: <span id="paused-roll" class="font-black text-xl"></span></p>
+            <p class="opacity-75 text-sm mb-8">Your result is being compiled and will be published shortly. Please check back soon.</p>
+            <button onclick="backToSearch()" class="bg-white text-yellow-800 px-8 py-3 rounded-xl font-bold hover:bg-yellow-50 transition shadow-lg">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Search
+            </button>
+        </div>
+    </section>
+
+    <!-- ADMIN RETURN BUTTON -->
+    <div id="admin-return-wrapper" class="hidden max-w-[794px] mx-auto mb-4">
+        <button onclick="returnToAdminDashboard()" class="bg-gray-800 text-white px-4 py-2 rounded-lg shadow hover:bg-gray-700 font-semibold flex items-center">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+        </button>
+    </div>
+
+    <!-- RESULT WRAPPER -->
+    <div id="result-wrapper" class="hidden flex flex-col items-center">
+        <div class="flex flex-wrap gap-3 mb-6 justify-center">
+            <button id="student-back-btn" onclick="resetSearch()" class="bg-gray-600 text-white px-5 py-2 rounded-lg shadow hover:bg-gray-700 font-semibold">
+                <i class="fas fa-arrow-left mr-2"></i>Back
+            </button>
+            <button onclick="downloadJPG()" class="bg-emerald-600 text-white px-5 py-2 rounded-lg shadow hover:bg-emerald-700 font-semibold">
+                <i class="fas fa-download mr-2"></i>Download JPG
+            </button>
+            <button onclick="printResultPDF()" class="bg-red-600 text-white px-5 py-2 rounded-lg shadow hover:bg-red-700 font-semibold">
+                <i class="fas fa-print mr-2"></i>Print / PDF
+            </button>
+            <button onclick="shareResult()" class="bg-indigo-600 text-white px-5 py-2 rounded-lg shadow hover:bg-indigo-700 font-semibold">
+                <i class="fas fa-share-alt mr-2"></i>Share
+            </button>
+        </div>
+
+        <!-- RESULT CARD — layout class applied dynamically -->
+        <div id="result-container" class="a4-paper">
+            <!-- Header -->
+            <div class="rc-header">
+                <h1 id="res-inst-name" class="rc-inst-name">Institution Name</h1>
+                <p id="res-inst-address" class="rc-inst-addr">Address Line 1, City, State</p>
+                <div id="res-exam-badge" class="rc-exam-badge">Annual Examination</div>
+            </div>
+
+            <!-- Student Info -->
+            <div id="rc-student-info-wrap" class="rc-student-info" style="margin-top:24px">
+                <div class="rc-info-item" id="info-name-wrap">
+                    <div class="rc-info-label">Student Name</div>
+                    <div class="rc-info-value" id="res-name">—</div>
+                </div>
+                <div class="rc-info-item" id="info-roll-wrap">
+                    <div class="rc-info-label">Roll Number</div>
+                    <div class="rc-info-value" id="res-roll">—</div>
+                </div>
+                <div class="rc-info-item" id="wrapper-class" style="display:none">
+                    <div class="rc-info-label">Class / Section</div>
+                    <div class="rc-info-value" id="res-class">—</div>
+                </div>
+                <div class="rc-info-item" id="wrapper-father" style="display:none">
+                    <div class="rc-info-label">Father's Name</div>
+                    <div class="rc-info-value" id="res-father">—</div>
+                </div>
+                <div class="rc-info-item" id="wrapper-mother" style="display:none">
+                    <div class="rc-info-label">Mother's Name</div>
+                    <div class="rc-info-value" id="res-mother">—</div>
+                </div>
+                <div class="rc-info-item" id="wrapper-dob" style="display:none">
+                    <div class="rc-info-label">Date of Birth</div>
+                    <div class="rc-info-value" id="res-dob">—</div>
+                </div>
+            </div>
+
+            <!-- Dynamic Content -->
+            <div class="rc-body">
+                <div id="dynamic-result-content" class="mb-4"></div>
+            </div>
+
+            <!-- Footer -->
+            <div class="rc-footer">
+                <div class="text-center">
+                    <div id="qrcode" class="mb-1"></div>
+                    <p style="font-size:9px;color:#9ca3af;text-transform:uppercase;letter-spacing:2px">Scan to Validate</p>
+                </div>
+                <div class="text-right flex flex-col items-end">
+                    <div class="h-14 w-28 mb-1 flex items-end justify-end">
+                        <img id="res-sig-img" src="" class="max-h-full max-w-full object-contain hidden" alt="Signature">
+                    </div>
+                    <p id="res-controller-label" class="controller-label hidden" style="font-size:12px;font-weight:700">Controller of Examinations</p>
+                    <p id="res-date" style="font-size:11px;color:#6b7280;margin-top:2px"></p>
+                </div>
+            </div>
+
+            <!-- Watermark -->
+            <div class="rc-watermark"><i class="fas fa-university"></i></div>
+            <!-- Logo Watermark (institution logo) -->
+            <div id="rc-logo-watermark" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0.07;z-index:1;"></div>
+        </div>
+    </div>
+</main>
+
+<!-- ===== ADMIN MODAL ===== -->
+<div id="admin-modal" class="fixed inset-0 bg-black bg-opacity-60 hidden flex items-center justify-center z-50 p-0 md:p-4">
+    <div class="bg-white md:rounded-2xl shadow-2xl w-full h-full md:h-auto md:max-w-5xl overflow-hidden flex flex-col" style="max-height:100vh;">
+
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between px-6 py-4" style="background:linear-gradient(90deg,#0f2557,#1d4ed8)">
+            <div class="flex items-center gap-3">
+                <div class="bg-white bg-opacity-20 p-2 rounded-lg">
+                    <i class="fas fa-shield-alt text-white"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-white text-lg leading-tight">Admin Dashboard</h3>
+                    <div class="text-xs text-blue-200" id="session-timer">Session: 30:00</div>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="adminLogout()" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition">
+                    <i class="fas fa-sign-out-alt mr-1"></i>Logout
+                </button>
+                <button onclick="toggleAdminPanel()" class="text-white opacity-60 hover:opacity-100 p-1">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Login View -->
+        <div id="admin-login-view" class="p-10 text-center flex-1 flex flex-col items-center justify-center">
+            <div class="bg-blue-50 rounded-2xl p-8 max-w-sm w-full shadow-inner">
+                <div class="mb-4 bg-blue-100 inline-block p-4 rounded-full">
+                    <i class="fas fa-lock text-2xl text-blue-700"></i>
+                </div>
+                <h4 class="text-xl font-bold mb-5 text-gray-800">Secure Admin Login</h4>
+                <input type="password" id="admin-pass" placeholder="Enter Password" class="border-2 p-3 rounded-xl w-full mb-4 focus:outline-none focus:border-blue-500 text-center" onkeydown="if(event.key==='Enter') adminLogin()">
+                <div class="flex gap-3">
+                    <button onclick="toggleAdminPanel()" class="flex-1 bg-gray-200 text-gray-700 px-4 py-2.5 rounded-xl font-bold hover:bg-gray-300 transition">Cancel</button>
+                    <button onclick="adminLogin()" class="flex-1 bg-blue-600 text-white px-4 py-2.5 rounded-xl font-bold hover:bg-blue-700 transition">Login</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard View -->
+        <div id="admin-dashboard-view" class="hidden flex flex-col flex-1 min-h-0">
+            <!-- Tabs -->
+            <div class="flex border-b border-gray-200 bg-gray-50 overflow-x-auto shrink-0">
+                <button onclick="switchTab('upload')" id="tab-btn-upload" class="flex-1 px-4 py-3 text-xs font-bold hover:bg-gray-100 whitespace-nowrap transition border-b-2 border-transparent">
+                    <i class="fas fa-plus-circle mr-1"></i>Add Result
+                </button>
+                <button onclick="switchTab('view')" id="tab-btn-view" class="flex-1 px-4 py-3 text-xs font-bold hover:bg-gray-100 whitespace-nowrap transition border-b-2 border-transparent">
+                    <i class="fas fa-list mr-1"></i>View Results
+                </button>
+                <button onclick="switchTab('exams')" id="tab-btn-exams" class="flex-1 px-4 py-3 text-xs font-bold hover:bg-gray-100 whitespace-nowrap transition border-b-2 border-transparent">
+                    <i class="fas fa-file-alt mr-1"></i>Exams
+                </button>
+                <button onclick="switchTab('institutions')" id="tab-btn-institutions" class="flex-1 px-4 py-3 text-xs font-bold hover:bg-gray-100 whitespace-nowrap transition border-b-2 border-transparent">
+                    <i class="fas fa-university mr-1"></i>Institutions
+                </button>
+                <button onclick="switchTab('settings')" id="tab-btn-settings" class="flex-1 px-4 py-3 text-xs font-bold hover:bg-gray-100 whitespace-nowrap transition border-b-2 border-transparent">
+                    <i class="fas fa-cog mr-1"></i>Settings
+                </button>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="p-5 overflow-y-auto admin-content flex-1" style="max-height:calc(100vh - 130px)">
+
+                <!-- ===== ADD RESULT TAB ===== -->
+                <div id="tab-upload">
+                    <h3 class="font-bold text-base mb-4 text-gray-700 flex items-center gap-2">
+                        <i class="fas fa-plus-circle text-blue-600"></i>Add New Result
+                    </h3>
+
+                    <!-- Result Type -->
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold mb-1 text-gray-500 uppercase tracking-wide">Result Type</label>
+                        <select id="new-type" onchange="toggleFormType()" class="w-full border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+                            <option value="academic">Academic (Subjects & Grades)</option>
+                            <option value="competition">Competition (Marks & Negatives)</option>
+                        </select>
+                    </div>
+
+                    <!-- Student Basic Info -->
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Student Name *</label>
+                            <input type="text" id="new-name" placeholder="Full Name" class="w-full border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Roll Number *</label>
+                            <input type="text" id="new-roll" placeholder="e.g. 1001" class="w-full border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Select Exam *</label>
+                            <select id="new-exam" class="w-full border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                <option value="">-- Select Exam --</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Select Institution *</label>
+                            <select id="new-institution" class="w-full border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                <option value="">-- Select Institution --</option>
+                            </select>
+                        </div>
+
+                        <!-- CLASS + SECTION (Academic only) -->
+                        <div id="new-class-wrap">
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Class</label>
+                            <select id="new-class" class="w-full border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                <option value="">-- Select Class --</option>
+                                <option>Nursery</option><option>LKG</option><option>UKG</option>
+                                <option>Class 1</option><option>Class 2</option><option>Class 3</option>
+                                <option>Class 4</option><option>Class 5</option><option>Class 6</option>
+                                <option>Class 7</option><option>Class 8</option><option>Class 9</option>
+                                <option>Class 10</option><option>Class 11</option><option>Class 12</option>
+                                <option>Other</option>
+                            </select>
+                        </div>
+                        <div id="new-section-wrap">
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Section (Optional)</label>
+                            <input type="text" id="new-section" placeholder="e.g. A, B, C" class="w-full border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Father's Name (Optional)</label>
+                            <input type="text" id="new-father" placeholder="Father's Name" class="w-full border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Mother's Name (Optional)</label>
+                            <input type="text" id="new-mother" placeholder="Mother's Name" class="w-full border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Date of Birth (Optional)</label>
+                            <input type="text" id="new-dob" placeholder="DD-MM-YYYY" class="w-full border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        </div>
+                    </div>
+
+                    <!-- ACADEMIC FORM -->
+                    <div id="form-academic" class="space-y-3 p-4 bg-blue-50 rounded-xl border border-blue-100">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i class="fas fa-book text-blue-600 text-sm"></i>
+                            <span class="text-xs font-bold text-gray-600 uppercase tracking-wide">Subject Marks</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <select id="subject-picker" class="flex-1 border p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                <option value="">-- Select Subject --</option>
+                            </select>
+                            <input type="number" id="subject-fullmarks" placeholder="Max" value="100" min="1" class="w-20 border p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                            <button type="button" onclick="addSubjectRow()" class="bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 whitespace-nowrap">+ Add</button>
+                        </div>
+                        <div class="flex items-center gap-2 bg-white p-2 rounded-lg border text-xs">
+                            <span class="text-gray-500 whitespace-nowrap">Custom Subject:</span>
+                            <input type="text" id="custom-subject-name" placeholder="Type name..." class="flex-1 border p-1.5 rounded-lg focus:outline-none">
+                            <button type="button" onclick="saveCustomSubject()" class="bg-gray-600 text-white px-2.5 py-1.5 rounded-lg whitespace-nowrap font-bold">Save</button>
+                        </div>
+                        <div id="subjects-table-container" class="hidden">
+                            <table class="w-full text-sm border-collapse rounded-lg overflow-hidden border border-gray-200">
+                                <thead class="text-xs uppercase text-white" style="background:linear-gradient(90deg,#1e3a8a,#3b82f6)">
+                                    <tr>
+                                        <th class="p-2 text-left">Subject</th>
+                                        <th class="p-2 text-center">Obtained</th>
+                                        <th class="p-2 text-center">Max</th>
+                                        <th class="p-2 text-center">%</th>
+                                        <th class="p-2"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="subjects-rows"></tbody>
+                                <tfoot class="bg-blue-50 font-bold text-sm">
+                                    <tr>
+                                        <td class="p-2">Total</td>
+                                        <td class="p-2 text-center" id="total-obtained">—</td>
+                                        <td class="p-2 text-center" id="total-fullmarks">—</td>
+                                        <td class="p-2 text-center text-blue-700" id="total-percent">—</td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- COMPETITION FORM -->
+                    <div id="form-competition" class="hidden p-4 bg-purple-50 rounded-xl border border-purple-100">
+                        <div class="flex items-center gap-2 mb-3">
+                            <i class="fas fa-trophy text-purple-600 text-sm"></i>
+                            <span class="text-xs font-bold text-gray-600 uppercase tracking-wide">Competition Stats</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="number" id="new-total-q" placeholder="Total Questions" class="border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400">
+                            <input type="number" id="new-correct" placeholder="Correct Answers" class="border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400">
+                            <input type="number" id="new-incorrect" placeholder="Incorrect Answers" class="border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400">
+                            <input type="number" id="new-pos-mark" placeholder="Marks per Correct" value="4" class="border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400">
+                            <input type="number" id="new-neg-mark" placeholder="Negative per Wrong" value="1" class="border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400">
+                        </div>
+                    </div>
+
+                    <button onclick="saveResult()" class="w-full text-white font-bold py-3 rounded-xl mt-4 transition shadow-lg hover:shadow-xl" style="background:linear-gradient(90deg,#16a34a,#15803d)">
+                        <i class="fas fa-save mr-2"></i>Save Result
+                    </button>
+                </div>
+
+                <!-- ===== EDIT RESULT TAB ===== -->
+                <div id="tab-edit" class="hidden">
+                    <div class="mb-4 flex items-center justify-between">
+                        <h3 class="font-bold text-base text-gray-700 flex items-center gap-2">
+                            <i class="fas fa-edit text-blue-600"></i>Edit Result
+                        </h3>
+                        <button onclick="cancelEdit()" class="text-gray-400 hover:text-gray-700 text-sm flex items-center gap-1">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                    </div>
+
+                    <input type="hidden" id="edit-original-roll">
+
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold mb-1 text-gray-500 uppercase tracking-wide">Result Type</label>
+                        <select id="edit-type" onchange="toggleEditFormType()" class="w-full border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+                            <option value="academic">Academic (Subjects & Grades)</option>
+                            <option value="competition">Competition (Marks & Negatives)</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Student Name *</label>
+                            <input type="text" id="edit-name" placeholder="Full Name" class="w-full border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Roll Number *</label>
+                            <input type="text" id="edit-roll" placeholder="Roll Number" class="w-full border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Select Exam *</label>
+                            <select id="edit-exam" class="w-full border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                <option value="">-- Select Exam --</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Select Institution *</label>
+                            <select id="edit-institution" class="w-full border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                <option value="">-- Select Institution --</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Class</label>
+                            <select id="edit-class" class="w-full border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                <option value="">-- Select Class --</option>
+                                <option>Nursery</option><option>LKG</option><option>UKG</option>
+                                <option>Class 1</option><option>Class 2</option><option>Class 3</option>
+                                <option>Class 4</option><option>Class 5</option><option>Class 6</option>
+                                <option>Class 7</option><option>Class 8</option><option>Class 9</option>
+                                <option>Class 10</option><option>Class 11</option><option>Class 12</option>
+                                <option>Other</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Section (Optional)</label>
+                            <input type="text" id="edit-section" placeholder="e.g. A, B, C" class="w-full border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Father's Name</label>
+                            <input type="text" id="edit-father" placeholder="Father's Name" class="w-full border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Mother's Name</label>
+                            <input type="text" id="edit-mother" placeholder="Mother's Name" class="w-full border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Date of Birth</label>
+                            <input type="text" id="edit-dob" placeholder="DD-MM-YYYY" class="w-full border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        </div>
+                    </div>
+
+                    <!-- Edit Academic -->
+                    <div id="edit-form-academic" class="space-y-3 p-4 bg-blue-50 rounded-xl border border-blue-100">
+                        <div class="flex items-center gap-2 mb-1">
+                            <i class="fas fa-book text-blue-600 text-sm"></i>
+                            <span class="text-xs font-bold text-gray-600 uppercase tracking-wide">Edit Subjects</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <select id="edit-subject-picker" class="flex-1 border p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                <option value="">-- Select Subject --</option>
+                            </select>
+                            <input type="number" id="edit-subject-fullmarks" placeholder="Max" value="100" min="1" class="w-20 border p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                            <button type="button" onclick="addEditSubjectRow()" class="bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 whitespace-nowrap">+ Add</button>
+                        </div>
+                        <div class="flex items-center gap-2 bg-white p-2 rounded-lg border text-xs">
+                            <span class="text-gray-500 whitespace-nowrap">Custom:</span>
+                            <input type="text" id="edit-custom-subject-name" placeholder="Type name..." class="flex-1 border p-1.5 rounded-lg focus:outline-none">
+                            <button type="button" onclick="saveEditCustomSubject()" class="bg-gray-600 text-white px-2.5 py-1.5 rounded-lg whitespace-nowrap font-bold">Save</button>
+                        </div>
+                        <div id="edit-subjects-table-container" class="hidden">
+                            <table class="w-full text-sm border-collapse rounded-lg overflow-hidden border border-gray-200">
+                                <thead class="text-xs uppercase text-white" style="background:linear-gradient(90deg,#1e3a8a,#3b82f6)">
+                                    <tr>
+                                        <th class="p-2 text-left">Subject</th>
+                                        <th class="p-2 text-center">Obtained</th>
+                                        <th class="p-2 text-center">Max</th>
+                                        <th class="p-2 text-center">%</th>
+                                        <th class="p-2"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="edit-subjects-rows"></tbody>
+                                <tfoot class="bg-blue-50 font-bold text-sm">
+                                    <tr>
+                                        <td class="p-2">Total</td>
+                                        <td class="p-2 text-center" id="edit-total-obtained">—</td>
+                                        <td class="p-2 text-center" id="edit-total-fullmarks">—</td>
+                                        <td class="p-2 text-center text-blue-700" id="edit-total-percent">—</td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Edit Competition -->
+                    <div id="edit-form-competition" class="hidden p-4 bg-purple-50 rounded-xl border border-purple-100">
+                        <div class="flex items-center gap-2 mb-3">
+                            <i class="fas fa-trophy text-purple-600 text-sm"></i>
+                            <span class="text-xs font-bold text-gray-600 uppercase tracking-wide">Competition Stats</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="number" id="edit-total-q" placeholder="Total Questions" class="border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400">
+                            <input type="number" id="edit-correct" placeholder="Correct Answers" class="border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400">
+                            <input type="number" id="edit-incorrect" placeholder="Incorrect Answers" class="border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400">
+                            <input type="number" id="edit-pos-mark" placeholder="Marks per Correct" value="4" class="border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400">
+                            <input type="number" id="edit-neg-mark" placeholder="Negative per Wrong" value="1" class="border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400">
+                        </div>
+                    </div>
+
+                    <button onclick="updateResult()" class="w-full text-white font-bold py-3 rounded-xl mt-4 transition" style="background:linear-gradient(90deg,#1d4ed8,#3b82f6)">
+                        <i class="fas fa-save mr-2"></i>Update Result
+                    </button>
+
+                    <div class="mt-3 flex gap-2">
+                        <button onclick="toggleStatusFromEdit()" id="edit-status-toggle-btn" class="flex-1 py-2.5 rounded-xl font-bold text-sm text-white transition bg-yellow-500 hover:bg-yellow-600">
+                            <i class="fas fa-pause-circle mr-1"></i><span id="edit-status-toggle-label">Pause Result</span>
+                        </button>
+                        <button onclick="deleteResultFromEdit()" class="flex-1 bg-red-600 text-white font-bold py-2.5 rounded-xl hover:bg-red-700 transition text-sm">
+                            <i class="fas fa-trash mr-1"></i>Delete Result
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ===== VIEW RESULTS TAB ===== -->
+                <div id="tab-view" class="hidden">
+                    <!-- Global Status Bar -->
+                    <div id="global-status-bar" class="mb-4 p-4 rounded-xl border flex items-center justify-between bg-green-50 border-green-200">
+                        <div class="flex items-center gap-3">
+                            <div id="global-status-icon" class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center">
+                                <i class="fas fa-circle-check text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-sm" id="global-status-label">All Results: LIVE</div>
+                                <div class="text-xs text-gray-500" id="global-status-desc">Students can view results normally</div>
+                            </div>
+                        </div>
+                        <button onclick="toggleGlobalStatus()" id="global-status-btn" class="px-4 py-2 rounded-lg font-bold text-sm text-white bg-yellow-500 hover:bg-yellow-600 transition">
+                            <i class="fas fa-pause-circle mr-1"></i>Pause All
+                        </button>
+                    </div>
+
+                    <!-- Note when globally paused -->
+                    <div id="global-pause-note" class="hidden mb-3 p-2.5 bg-orange-50 border border-orange-200 rounded-lg text-xs text-orange-800">
+                        <i class="fas fa-exclamation-triangle mr-1"></i>
+                        <strong>Global Pause Active:</strong> All students see "Coming Soon" regardless of individual status. Individual toggles still update the stored status.
+                    </div>
+
+                    <div class="mb-3 p-2.5 bg-blue-50 text-blue-800 text-xs border border-blue-100 rounded-lg">
+                        <i class="fas fa-info-circle mr-1"></i> Click <strong>View</strong> to preview result card. Use <strong>Back to Dashboard</strong> to return here.
+                    </div>
+
+                    <div class="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
+                        <table class="w-full text-sm text-left">
+                            <thead class="text-xs text-white uppercase" style="background:linear-gradient(90deg,#0f2557,#1d4ed8)">
+                                <tr>
+                                    <th class="px-4 py-3">Roll</th>
+                                    <th class="px-4 py-3">Name</th>
+                                    <th class="px-4 py-3">Class</th>
+                                    <th class="px-4 py-3">Type</th>
+                                    <th class="px-4 py-3">Status</th>
+                                    <th class="px-4 py-3 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-results-list"></tbody>
+                        </table>
+                    </div>
+                    <p id="no-results-msg" class="text-center text-gray-400 py-6 hidden">No results found. Add some from the "Add Result" tab.</p>
+                </div>
+
+                <!-- ===== EXAMS TAB ===== -->
+                <div id="tab-exams" class="hidden">
+                    <h3 class="font-bold text-base mb-4 text-gray-700 flex items-center gap-2">
+                        <i class="fas fa-file-alt text-blue-600"></i>Manage Exams
+                    </h3>
+
+                    <!-- Exam Type Selector -->
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold mb-1 text-gray-500 uppercase tracking-wide">Exam Category</label>
+                        <select id="exam-type-select" onchange="toggleExamForm()" class="w-full border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 font-semibold">
+                            <option value="academic">📚 Academic Exam</option>
+                            <option value="competition">🏆 Competition Exam</option>
+                        </select>
+                    </div>
+
+                    <!-- Academic Exam Form -->
+                    <div id="exam-form-academic" class="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-4">
+                        <h4 class="font-bold text-sm mb-3 text-blue-700 flex items-center gap-2"><i class="fas fa-book"></i> Add Academic Exam</h4>
+                        <div class="grid grid-cols-2 gap-2 mb-3">
+                            <div>
+                                <label class="text-xs font-bold text-gray-500 mb-1 block">Exam Name *</label>
+                                <input type="text" id="acad-exam-name" placeholder="e.g. Annual Examination" class="w-full border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-gray-500 mb-1 block">Academic Year *</label>
+                                <select id="acad-exam-year" class="w-full border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"></select>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-lg border p-3 mb-3">
+                            <p class="text-xs font-bold text-gray-500 uppercase mb-2">Add Subjects & Max Marks</p>
+                            <div class="flex gap-2 mb-2">
+                                <select id="acad-subject-pick" class="flex-1 border p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                    <option value="">-- Select Subject --</option>
+                                </select>
+                                <input type="number" id="acad-subj-max" value="100" min="1" placeholder="Max" class="w-20 border p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                <button onclick="addAcadSubjectRow()" class="bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-bold hover:bg-blue-700">+ Add</button>
+                            </div>
+                            <div id="acad-exam-subjects-container" class="hidden">
+                                <table class="w-full text-xs border-collapse">
+                                    <thead><tr class="text-white" style="background:linear-gradient(90deg,#1e3a8a,#3b82f6)">
+                                        <th class="p-2 text-left">Subject</th>
+                                        <th class="p-2 text-center">Max Marks</th>
+                                        <th class="p-2"></th>
+                                    </tr></thead>
+                                    <tbody id="acad-exam-subjects-rows"></tbody>
+                                    <tfoot><tr class="bg-blue-50 font-bold">
+                                        <td class="p-2">Total Max Marks</td>
+                                        <td class="p-2 text-center text-blue-700" id="acad-total-max">—</td>
+                                        <td></td>
+                                    </tr></tfoot>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="flex gap-2 mb-2">
+                            <input type="text" id="acad-exam-live" value="live" readonly class="hidden">
+                            <label class="text-xs font-semibold text-gray-600 flex items-center gap-2">
+                                <input type="checkbox" id="acad-exam-is-live" class="rounded" checked>
+                                Make result searchable (Live)
+                            </label>
+                        </div>
+                        <button onclick="addAcademicExam()" class="w-full bg-blue-600 text-white font-bold py-2.5 rounded-xl hover:bg-blue-700 transition">Add Academic Exam</button>
+                    </div>
+
+                    <!-- Competition Exam Form -->
+                    <div id="exam-form-competition" class="hidden bg-purple-50 p-4 rounded-xl border border-purple-100 mb-4">
+                        <h4 class="font-bold text-sm mb-3 text-purple-700 flex items-center gap-2"><i class="fas fa-trophy"></i> Add Competition Exam</h4>
+                        <div class="grid grid-cols-2 gap-2 mb-2">
+                            <div>
+                                <label class="text-xs font-bold text-gray-500 mb-1 block">Competition Name *</label>
+                                <input type="text" id="comp-exam-name" placeholder="e.g. National Science Olympiad" class="w-full border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-gray-500 mb-1 block">Exam Date</label>
+                                <input type="date" id="comp-exam-date" class="w-full border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-gray-500 mb-1 block">Total Questions *</label>
+                                <input type="number" id="comp-total-questions" placeholder="e.g. 100" class="w-full border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-gray-500 mb-1 block">Total Marks (Auto)</label>
+                                <input type="number" id="comp-total-marks" placeholder="Auto-calculated" readonly class="w-full border p-2.5 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-gray-500 mb-1 block">Marks for Correct Ans *</label>
+                                <input type="number" id="comp-correct-marks" placeholder="e.g. 4" oninput="calcCompTotal()" class="w-full border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-gray-500 mb-1 block">Negative for Wrong Ans</label>
+                                <input type="number" id="comp-wrong-marks" placeholder="e.g. 1" class="w-full border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400" value="0">
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-lg border p-2 mb-2 text-xs text-gray-500">
+                            <i class="fas fa-info-circle text-purple-400 mr-1"></i>
+                            Marking Scheme: <span id="comp-scheme-preview" class="font-bold text-purple-700">+0 / -0</span> | Total Marks: <span id="comp-total-preview" class="font-bold text-blue-700">—</span>
+                        </div>
+                        <div class="mb-2">
+                            <label class="text-xs font-semibold text-gray-600 flex items-center gap-2">
+                                <input type="checkbox" id="comp-exam-is-live" class="rounded" checked>
+                                Make result searchable (Live)
+                            </label>
+                        </div>
+                        <button onclick="addCompetitionExam()" class="w-full bg-purple-600 text-white font-bold py-2.5 rounded-xl hover:bg-purple-700 transition">Add Competition Exam</button>
+                    </div>
+
+                    <div class="overflow-x-auto rounded-xl border border-gray-200">
+                        <table class="w-full text-sm text-left">
+                            <thead class="text-xs text-white uppercase" style="background:linear-gradient(90deg,#0f2557,#1d4ed8)">
+                                <tr>
+                                    <th class="px-4 py-3">Exam Name</th>
+                                    <th class="px-4 py-3">Type</th>
+                                    <th class="px-4 py-3">Details</th>
+                                    <th class="px-4 py-3">Status</th>
+                                    <th class="px-4 py-3 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="exams-list"></tbody>
+                        </table>
+                    </div>
+                    <p id="no-exams-msg" class="text-center text-gray-400 py-6 hidden">No exams added yet.</p>
+                </div>
+
+                <!-- ===== INSTITUTIONS TAB ===== -->
+                <div id="tab-institutions" class="hidden">
+                    <h3 class="font-bold text-base mb-4 text-gray-700 flex items-center gap-2">
+                        <i class="fas fa-university text-blue-600"></i>Manage Institutions
+                    </h3>
+                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-4">
+                        <h4 class="font-bold text-sm mb-3 text-gray-700">Add New Institution</h4>
+                        <input type="text" id="inst-name" placeholder="Institution Name" class="w-full border p-2.5 rounded-lg mb-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        <textarea id="inst-address" placeholder="Full Address" rows="2" class="w-full border p-2.5 rounded-lg mb-2 focus:outline-none focus:ring-2 focus:ring-blue-400"></textarea>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">Institution Logo (Optional) — Appears as watermark on result</label>
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="flex-1">
+                                <input type="file" id="inst-logo-upload" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" onchange="previewInstLogo()">
+                            </div>
+                            <div class="h-14 w-20 border bg-white rounded-lg flex items-center justify-center overflow-hidden">
+                                <img id="inst-logo-preview" src="" class="max-h-full max-w-full object-contain hidden">
+                                <span id="inst-logo-placeholder" class="text-xs text-gray-300 text-center">Logo</span>
+                            </div>
+                        </div>
+                        <button onclick="addInstitution()" class="w-full bg-blue-600 text-white font-bold py-2.5 rounded-xl hover:bg-blue-700 transition">Add Institution</button>
+                    </div>
+                    <div class="overflow-x-auto rounded-xl border border-gray-200">
+                        <table class="w-full text-sm text-left">
+                            <thead class="text-xs text-white uppercase" style="background:linear-gradient(90deg,#0f2557,#1d4ed8)">
+                                <tr>
+                                    <th class="px-4 py-3">Logo</th>
+                                    <th class="px-4 py-3">Institution Name</th>
+                                    <th class="px-4 py-3">Address</th>
+                                    <th class="px-4 py-3 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="institutions-list"></tbody>
+                        </table>
+                    </div>
+                    <p id="no-institutions-msg" class="text-center text-gray-400 py-6 hidden">No institutions added yet.</p>
+                </div>
+
+                <!-- ===== SETTINGS TAB ===== -->
+                <div id="tab-settings" class="hidden space-y-6">
+
+                    <!-- Result Card Layout — 20 options -->
+                    <div class="bg-gray-50 p-5 rounded-xl border">
+                        <h4 class="font-bold text-sm mb-1 text-gray-700 uppercase tracking-wide flex items-center gap-2">
+                            <i class="fas fa-layer-group text-blue-600"></i>Result Card Layout
+                        </h4>
+                        <p class="text-xs text-gray-500 mb-4">Choose from 20 professional designs. Affects how the result card looks when viewed &amp; downloaded.</p>
+                        <div class="grid grid-cols-4 gap-2" id="layout-grid">
+                            <!-- Row 1 -->
+                            <div class="layout-card selected" data-layout="classic" onclick="selectLayout(this)">
+                                <div class="layout-preview"><div style="height:50%;background:linear-gradient(135deg,#0f2557,#1d4ed8);display:flex;align-items:center;justify-content:center;"><span style="color:white;font-size:7px;font-weight:900;letter-spacing:1px">CLASSIC BLUE</span></div><div style="height:50%;background:white;padding:3px 5px;"><div style="height:2px;background:#dbeafe;border-radius:2px;margin-bottom:2px"></div><div style="height:1.5px;background:#e5e7eb;border-radius:2px"></div></div></div>
+                                <p class="text-[11px] font-bold text-gray-700 text-center">Classic Blue</p>
+                                <p class="text-[9px] text-gray-400 text-center">Professional</p>
+                            </div>
+                            <div class="layout-card" data-layout="modern" onclick="selectLayout(this)">
+                                <div class="layout-preview"><div style="height:50%;background:linear-gradient(135deg,#4c1d95,#7c3aed,#ec4899);display:flex;align-items:center;justify-content:center;"><span style="color:white;font-size:7px;font-weight:900;letter-spacing:1px">MODERN</span></div><div style="height:50%;background:white;padding:3px 5px;"><div style="height:2px;background:#f3e8ff;border-radius:2px;margin-bottom:2px"></div><div style="height:1.5px;background:#ede9fe;border-radius:2px"></div></div></div>
+                                <p class="text-[11px] font-bold text-gray-700 text-center">Modern Gradient</p>
+                                <p class="text-[9px] text-gray-400 text-center">Vivid &amp; Bold</p>
+                            </div>
+                            <div class="layout-card" data-layout="certificate" onclick="selectLayout(this)">
+                                <div class="layout-preview" style="border:3px solid #b8860b;"><div style="height:50%;background:linear-gradient(135deg,#1a1a2e,#0f3460);display:flex;align-items:center;justify-content:center;"><span style="color:#f5c842;font-size:7px;font-weight:900;letter-spacing:1px">GOLD CERT</span></div><div style="height:50%;background:#fffdf0;padding:3px 5px;"><div style="height:2px;background:#fef3c7;border-radius:2px;margin-bottom:2px"></div><div style="height:1.5px;background:#fde68a;border-radius:2px"></div></div></div>
+                                <p class="text-[11px] font-bold text-gray-700 text-center">Gold Certificate</p>
+                                <p class="text-[9px] text-gray-400 text-center">Prestigious</p>
+                            </div>
+                            <div class="layout-card" data-layout="emerald" onclick="selectLayout(this)">
+                                <div class="layout-preview"><div style="height:50%;background:linear-gradient(135deg,#064e3b,#047857);display:flex;align-items:center;justify-content:center;"><span style="color:white;font-size:7px;font-weight:900;letter-spacing:1px">EMERALD</span></div><div style="height:50%;background:#f0fdf4;padding:3px 5px;"><div style="height:2px;background:#a7f3d0;border-radius:2px;margin-bottom:2px"></div><div style="height:1.5px;background:#d1fae5;border-radius:2px"></div></div></div>
+                                <p class="text-[11px] font-bold text-gray-700 text-center">Emerald Scholar</p>
+                                <p class="text-[9px] text-gray-400 text-center">Fresh Green</p>
+                            </div>
+                            <!-- Row 2 -->
+                            <div class="layout-card" data-layout="crimson" onclick="selectLayout(this)">
+                                <div class="layout-preview"><div style="height:50%;background:linear-gradient(135deg,#7f1d1d,#b91c1c);display:flex;align-items:center;justify-content:center;"><span style="color:white;font-size:7px;font-weight:900;letter-spacing:1px">CRIMSON</span></div><div style="height:50%;background:#fff5f5;padding:3px 5px;"><div style="height:2px;background:#fecaca;border-radius:2px;margin-bottom:2px"></div><div style="height:1.5px;background:#fee2e2;border-radius:2px"></div></div></div>
+                                <p class="text-[11px] font-bold text-gray-700 text-center">Crimson Honor</p>
+                                <p class="text-[9px] text-gray-400 text-center">Formal Red</p>
+                            </div>
+                            <div class="layout-card" data-layout="midnight" onclick="selectLayout(this)">
+                                <div class="layout-preview"><div style="height:50%;background:linear-gradient(135deg,#020617,#1e293b);display:flex;align-items:center;justify-content:center;"><span style="color:#67e8f9;font-size:7px;font-weight:900;letter-spacing:1px">MIDNIGHT</span></div><div style="height:50%;background:#0f172a;padding:3px 5px;"><div style="height:2px;background:#1e40af;border-radius:2px;margin-bottom:2px"></div><div style="height:1.5px;background:#1e293b;border-radius:2px"></div></div></div>
+                                <p class="text-[11px] font-bold text-gray-700 text-center">Midnight Galaxy</p>
+                                <p class="text-[9px] text-gray-400 text-center">Dark &amp; Elegant</p>
+                            </div>
+                            <div class="layout-card" data-layout="saffron" onclick="selectLayout(this)">
+                                <div class="layout-preview"><div style="height:50%;background:linear-gradient(135deg,#78350f,#d97706);display:flex;align-items:center;justify-content:center;"><span style="color:white;font-size:7px;font-weight:900;letter-spacing:1px">SAFFRON</span></div><div style="height:50%;background:#fffbeb;padding:3px 5px;"><div style="height:2px;background:#fde68a;border-radius:2px;margin-bottom:2px"></div><div style="height:1.5px;background:#fef3c7;border-radius:2px"></div></div></div>
+                                <p class="text-[11px] font-bold text-gray-700 text-center">Saffron Warm</p>
+                                <p class="text-[9px] text-gray-400 text-center">Amber Glow</p>
+                            </div>
+                            <div class="layout-card" data-layout="rose" onclick="selectLayout(this)">
+                                <div class="layout-preview"><div style="height:50%;background:linear-gradient(135deg,#881337,#f43f5e);display:flex;align-items:center;justify-content:center;"><span style="color:white;font-size:7px;font-weight:900;letter-spacing:1px">ROSE</span></div><div style="height:50%;background:#fff1f2;padding:3px 5px;"><div style="height:2px;background:#fecdd3;border-radius:2px;margin-bottom:2px"></div><div style="height:1.5px;background:#ffe4e6;border-radius:2px"></div></div></div>
+                                <p class="text-[11px] font-bold text-gray-700 text-center">Rose Bloom</p>
+                                <p class="text-[9px] text-gray-400 text-center">Floral Pink</p>
+                            </div>
+                            <!-- Row 3 -->
+                            <div class="layout-card" data-layout="ocean" onclick="selectLayout(this)">
+                                <div class="layout-preview"><div style="height:50%;background:linear-gradient(135deg,#0c4a6e,#0284c7);display:flex;align-items:center;justify-content:center;"><span style="color:white;font-size:7px;font-weight:900;letter-spacing:1px">OCEAN</span></div><div style="height:50%;background:#f0f9ff;padding:3px 5px;"><div style="height:2px;background:#bae6fd;border-radius:2px;margin-bottom:2px"></div><div style="height:1.5px;background:#e0f2fe;border-radius:2px"></div></div></div>
+                                <p class="text-[11px] font-bold text-gray-700 text-center">Ocean Breeze</p>
+                                <p class="text-[9px] text-gray-400 text-center">Cool Sky Blue</p>
+                            </div>
+                            <div class="layout-card" data-layout="carbon" onclick="selectLayout(this)">
+                                <div class="layout-preview"><div style="height:50%;background:linear-gradient(135deg,#111827,#374151);display:flex;align-items:center;justify-content:center;"><span style="color:#60a5fa;font-size:7px;font-weight:900;letter-spacing:1px">CARBON</span></div><div style="height:50%;background:#1f2937;padding:3px 5px;"><div style="height:2px;background:#374151;border-radius:2px;margin-bottom:2px"></div><div style="height:1.5px;background:#4b5563;border-radius:2px"></div></div></div>
+                                <p class="text-[11px] font-bold text-gray-700 text-center">Carbon Pro</p>
+                                <p class="text-[9px] text-gray-400 text-center">Dark Minimal</p>
+                            </div>
+                            <div class="layout-card" data-layout="mint" onclick="selectLayout(this)">
+                                <div class="layout-preview"><div style="height:50%;background:linear-gradient(135deg,#022c22,#10b981);display:flex;align-items:center;justify-content:center;"><span style="color:white;font-size:7px;font-weight:900;letter-spacing:1px">MINT</span></div><div style="height:50%;background:#ecfdf5;padding:3px 5px;"><div style="height:2px;background:#6ee7b7;border-radius:2px;margin-bottom:2px"></div><div style="height:1.5px;background:#d1fae5;border-radius:2px"></div></div></div>
+                                <p class="text-[11px] font-bold text-gray-700 text-center">Mint Fresh</p>
+                                <p class="text-[9px] text-gray-400 text-center">Cool &amp; Clean</p>
+                            </div>
+                            <div class="layout-card" data-layout="burgundy" onclick="selectLayout(this)">
+                                <div class="layout-preview"><div style="height:50%;background:linear-gradient(135deg,#4c0519,#9f1239);display:flex;align-items:center;justify-content:center;"><span style="color:#fde68a;font-size:7px;font-weight:900;letter-spacing:1px">BURGUNDY</span></div><div style="height:50%;background:#fff7f7;padding:3px 5px;"><div style="height:2px;background:#fcd5d5;border-radius:2px;margin-bottom:2px"></div><div style="height:1.5px;background:#fee2e2;border-radius:2px"></div></div></div>
+                                <p class="text-[11px] font-bold text-gray-700 text-center">Burgundy Prestige</p>
+                                <p class="text-[9px] text-gray-400 text-center">Wine &amp; Gold</p>
+                            </div>
+                            <!-- Row 4 -->
+                            <div class="layout-card" data-layout="slate" onclick="selectLayout(this)">
+                                <div class="layout-preview"><div style="height:50%;background:linear-gradient(135deg,#1e293b,#475569);display:flex;align-items:center;justify-content:center;"><span style="color:white;font-size:7px;font-weight:900;letter-spacing:1px">SLATE</span></div><div style="height:50%;background:#f8fafc;padding:3px 5px;"><div style="height:2px;background:#cbd5e1;border-radius:2px;margin-bottom:2px"></div><div style="height:1.5px;background:#e2e8f0;border-radius:2px"></div></div></div>
+                                <p class="text-[11px] font-bold text-gray-700 text-center">Slate Pro</p>
+                                <p class="text-[9px] text-gray-400 text-center">Neutral Steel</p>
+                            </div>
+                            <div class="layout-card" data-layout="copper" onclick="selectLayout(this)">
+                                <div class="layout-preview"><div style="height:50%;background:linear-gradient(135deg,#431407,#c2410c);display:flex;align-items:center;justify-content:center;"><span style="color:#fed7aa;font-size:7px;font-weight:900;letter-spacing:1px">COPPER</span></div><div style="height:50%;background:#fff7ed;padding:3px 5px;"><div style="height:2px;background:#fed7aa;border-radius:2px;margin-bottom:2px"></div><div style="height:1.5px;background:#ffedd5;border-radius:2px"></div></div></div>
+                                <p class="text-[11px] font-bold text-gray-700 text-center">Copper Bronze</p>
+                                <p class="text-[9px] text-gray-400 text-center">Metallic Warm</p>
+                            </div>
+                            <div class="layout-card" data-layout="lavender" onclick="selectLayout(this)">
+                                <div class="layout-preview"><div style="height:50%;background:linear-gradient(135deg,#2e1065,#6d28d9);display:flex;align-items:center;justify-content:center;"><span style="color:white;font-size:7px;font-weight:900;letter-spacing:1px">LAVENDER</span></div><div style="height:50%;background:#f5f3ff;padding:3px 5px;"><div style="height:2px;background:#ddd6fe;border-radius:2px;margin-bottom:2px"></div><div style="height:1.5px;background:#ede9fe;border-radius:2px"></div></div></div>
+                                <p class="text-[11px] font-bold text-gray-700 text-center">Lavender Dream</p>
+                                <p class="text-[9px] text-gray-400 text-center">Soft Purple</p>
+                            </div>
+                            <div class="layout-card" data-layout="forest" onclick="selectLayout(this)">
+                                <div class="layout-preview"><div style="height:50%;background:linear-gradient(135deg,#052e16,#15803d);display:flex;align-items:center;justify-content:center;"><span style="color:#bbf7d0;font-size:7px;font-weight:900;letter-spacing:1px">FOREST</span></div><div style="height:50%;background:#f0fdf4;padding:3px 5px;"><div style="height:2px;background:#86efac;border-radius:2px;margin-bottom:2px"></div><div style="height:1.5px;background:#dcfce7;border-radius:2px"></div></div></div>
+                                <p class="text-[11px] font-bold text-gray-700 text-center">Forest Deep</p>
+                                <p class="text-[9px] text-gray-400 text-center">Earthy Green</p>
+                            </div>
+                            <!-- Row 5 -->
+                            <div class="layout-card" data-layout="ruby" onclick="selectLayout(this)">
+                                <div class="layout-preview"><div style="height:50%;background:linear-gradient(135deg,#4c0519,#e11d48);display:flex;align-items:center;justify-content:center;"><span style="color:white;font-size:7px;font-weight:900;letter-spacing:1px">RUBY</span></div><div style="height:50%;background:#fff1f2;padding:3px 5px;"><div style="height:2px;background:#fda4af;border-radius:2px;margin-bottom:2px"></div><div style="height:1.5px;background:#ffe4e6;border-radius:2px"></div></div></div>
+                                <p class="text-[11px] font-bold text-gray-700 text-center">Ruby Elite</p>
+                                <p class="text-[9px] text-gray-400 text-center">Vibrant Red</p>
+                            </div>
+                            <div class="layout-card" data-layout="indigo-steel" onclick="selectLayout(this)">
+                                <div class="layout-preview"><div style="height:50%;background:linear-gradient(135deg,#1e1b4b,#4338ca);display:flex;align-items:center;justify-content:center;"><span style="color:white;font-size:7px;font-weight:900;letter-spacing:1px">INDIGO</span></div><div style="height:50%;background:#eef2ff;padding:3px 5px;"><div style="height:2px;background:#c7d2fe;border-radius:2px;margin-bottom:2px"></div><div style="height:1.5px;background:#e0e7ff;border-radius:2px"></div></div></div>
+                                <p class="text-[11px] font-bold text-gray-700 text-center">Indigo Steel</p>
+                                <p class="text-[9px] text-gray-400 text-center">Deep Indigo</p>
+                            </div>
+                            <div class="layout-card" data-layout="amber" onclick="selectLayout(this)">
+                                <div class="layout-preview"><div style="height:50%;background:linear-gradient(135deg,#451a03,#b45309);display:flex;align-items:center;justify-content:center;"><span style="color:#fef3c7;font-size:7px;font-weight:900;letter-spacing:1px">AMBER</span></div><div style="height:50%;background:#fffbeb;padding:3px 5px;"><div style="height:2px;background:#fcd34d;border-radius:2px;margin-bottom:2px"></div><div style="height:1.5px;background:#fef3c7;border-radius:2px"></div></div></div>
+                                <p class="text-[11px] font-bold text-gray-700 text-center">Amber Harvest</p>
+                                <p class="text-[9px] text-gray-400 text-center">Honey Gold</p>
+                            </div>
+                            <div class="layout-card" data-layout="mono" onclick="selectLayout(this)">
+                                <div class="layout-preview"><div style="height:50%;background:linear-gradient(135deg,#000,#1f1f1f);display:flex;align-items:center;justify-content:center;"><span style="color:white;font-size:7px;font-weight:900;letter-spacing:1px">MONO</span></div><div style="height:50%;background:#fafafa;padding:3px 5px;"><div style="height:2px;background:#d1d5db;border-radius:2px;margin-bottom:2px"></div><div style="height:1.5px;background:#e5e7eb;border-radius:2px"></div></div></div>
+                                <p class="text-[11px] font-bold text-gray-700 text-center">Monochrome</p>
+                                <p class="text-[9px] text-gray-400 text-center">Ultra Formal</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Portal Skin -->
+                    <div class="bg-gray-50 p-5 rounded-xl border">
+                        <h4 class="font-bold text-sm mb-1 text-gray-700 uppercase tracking-wide flex items-center gap-2">
+                            <i class="fas fa-paint-roller text-purple-600"></i>Portal Appearance
+                        </h4>
+                        <p class="text-xs text-gray-500 mb-4">Change the overall look &amp; feel of your ResultScope portal — nav, search page, and background.</p>
+                        <div class="grid grid-cols-5 gap-2" id="skin-grid">
+                            <div class="skin-card selected" data-skin="" onclick="selectSkin(this)">
+                                <div class="skin-preview"><div style="height:40%;background:linear-gradient(135deg,#0f2557,#1d4ed8);"></div><div style="height:60%;background:#f3f4f6;"></div></div>
+                                <p class="text-[10px] font-bold text-gray-700">Default Navy</p>
+                                <p class="text-[9px] text-gray-400">Classic Look</p>
+                            </div>
+                            <div class="skin-card" data-skin="skin-parchment" onclick="selectSkin(this)">
+                                <div class="skin-preview"><div style="height:40%;background:linear-gradient(135deg,#78350f,#d97706);"></div><div style="height:60%;background:#fdf8f0;"></div></div>
+                                <p class="text-[10px] font-bold text-gray-700">Parchment</p>
+                                <p class="text-[9px] text-gray-400">Academic Warm</p>
+                            </div>
+                            <div class="skin-card" data-skin="skin-minimal" onclick="selectSkin(this)">
+                                <div class="skin-preview"><div style="height:40%;background:linear-gradient(135deg,#1e293b,#475569);"></div><div style="height:60%;background:#f0f4f8;"></div></div>
+                                <p class="text-[10px] font-bold text-gray-700">Minimal</p>
+                                <p class="text-[9px] text-gray-400">Clean &amp; Light</p>
+                            </div>
+                            <div class="skin-card" data-skin="skin-dark-pro" onclick="selectSkin(this)">
+                                <div class="skin-preview"><div style="height:40%;background:linear-gradient(135deg,#020617,#0f172a);"></div><div style="height:60%;background:#0f172a;"></div></div>
+                                <p class="text-[10px] font-bold text-gray-700">Dark Pro</p>
+                                <p class="text-[9px] text-gray-400">Night Mode</p>
+                            </div>
+                            <div class="skin-card" data-skin="skin-festive" onclick="selectSkin(this)">
+                                <div class="skin-preview"><div style="height:40%;background:linear-gradient(135deg,#4c1d95,#ec4899);"></div><div style="height:60%;background:#fdf4ff;"></div></div>
+                                <p class="text-[10px] font-bold text-gray-700">Festive</p>
+                                <p class="text-[9px] text-gray-400">Vivid &amp; Fun</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Academic Year -->
+                    <div class="bg-gray-50 p-5 rounded-xl border">
+                        <h4 class="font-bold text-sm mb-1 text-gray-700 uppercase tracking-wide flex items-center gap-2">
+                            <i class="fas fa-calendar-alt text-green-600"></i>Academic Year
+                        </h4>
+                        <p class="text-xs text-gray-500 mb-3">This year will appear on all result cards.</p>
+                        <div class="flex gap-2">
+                            <select id="set-academic-year" class="flex-1 border p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400">
+                                <option value="">-- Select Year --</option>
+                            </select>
+                            <button onclick="saveAcademicYear()" class="bg-green-600 text-white px-4 py-2.5 rounded-lg font-bold hover:bg-green-700 transition text-sm">Save</button>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-2" id="current-year-display"></p>
+                    </div>
+
+                    <!-- Institution Details -->
+                    <div class="bg-gray-50 p-5 rounded-xl border">
+                        <h4 class="font-bold text-sm mb-3 text-gray-700 uppercase tracking-wide flex items-center gap-2">
+                            <i class="fas fa-university text-blue-600"></i>Institution Details
+                        </h4>
+                        <input type="text" id="set-inst-name" placeholder="Institution Name" class="w-full border p-2.5 rounded-lg mb-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        <input type="text" id="set-inst-addr" placeholder="Address" class="w-full border p-2.5 rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        <label class="block text-xs font-bold text-gray-500 mb-2">Controller Signature (Optional)</label>
+                        <div class="flex items-center gap-4 mb-3">
+                            <div class="flex-1">
+                                <input type="file" id="set-sig-upload" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                                <p class="text-[10px] text-gray-400 mt-1">PNG/JPG with transparent background recommended</p>
+                            </div>
+                            <div class="h-14 w-28 border bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden">
+                                <img id="set-sig-preview" src="" class="max-h-full max-w-full object-contain hidden">
+                                <span id="set-sig-placeholder" class="text-xs text-gray-300 text-center">No Sig</span>
+                            </div>
+                            <button onclick="clearSignature()" class="text-red-500 text-xs hover:underline font-bold">Remove</button>
+                        </div>
+                        <button onclick="saveSettings()" class="w-full text-white font-bold py-2.5 rounded-xl transition" style="background:linear-gradient(90deg,#1d4ed8,#3b82f6)">Update Settings</button>
+                    </div>
+
+                    <!-- Subject List -->
+                    <div class="bg-gray-50 p-5 rounded-xl border">
+                        <h4 class="font-bold text-sm mb-1 text-gray-700 uppercase tracking-wide flex items-center gap-2">
+                            <i class="fas fa-book text-green-600"></i>Manage Subject List
+                        </h4>
+                        <p class="text-xs text-gray-500 mb-3">Subjects shown in the dropdown when adding academic results.</p>
+                        <div class="flex gap-2 mb-3">
+                            <input type="text" id="manage-subject-input" placeholder="e.g. Mathematics, Physics..." class="flex-1 border p-2.5 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400">
+                            <button onclick="addManagedSubject()" class="bg-green-600 text-white px-4 py-2.5 rounded-lg font-bold text-sm hover:bg-green-700">Add</button>
+                        </div>
+                        <div id="managed-subjects-list" class="flex flex-wrap gap-2 min-h-[40px]"></div>
+                    </div>
+
+                    <!-- Themes -->
+                    <div class="bg-gray-50 p-5 rounded-xl border">
+                        <h4 class="font-bold text-sm mb-1 text-gray-700 uppercase tracking-wide flex items-center gap-2">
+                            <i class="fas fa-palette text-purple-600"></i>Color Theme
+                        </h4>
+                        <p class="text-xs text-gray-500 mb-4">Changes the platform color scheme.</p>
+                        <div class="grid grid-cols-3 gap-3" id="theme-grid">
+                            <div class="theme-card" data-theme="" onclick="selectTheme(this)">
+                                <div class="theme-swatch" style="background:linear-gradient(135deg,#1e3a5f 50%,#3b82f6 100%)"></div>
+                                <p class="text-xs font-semibold text-gray-700">Classic Blue</p>
+                            </div>
+                            <div class="theme-card" data-theme="theme-purple" onclick="selectTheme(this)">
+                                <div class="theme-swatch" style="background:linear-gradient(135deg,#3b0764 50%,#8b5cf6 100%)"></div>
+                                <p class="text-xs font-semibold text-gray-700">Royal Purple</p>
+                            </div>
+                            <div class="theme-card" data-theme="theme-green" onclick="selectTheme(this)">
+                                <div class="theme-swatch" style="background:linear-gradient(135deg,#14532d 50%,#22c55e 100%)"></div>
+                                <p class="text-xs font-semibold text-gray-700">Forest Green</p>
+                            </div>
+                            <div class="theme-card" data-theme="theme-red" onclick="selectTheme(this)">
+                                <div class="theme-swatch" style="background:linear-gradient(135deg,#7f1d1d 50%,#ef4444 100%)"></div>
+                                <p class="text-xs font-semibold text-gray-700">Crimson Red</p>
+                            </div>
+                            <div class="theme-card" data-theme="theme-teal" onclick="selectTheme(this)">
+                                <div class="theme-swatch" style="background:linear-gradient(135deg,#134e4a 50%,#14b8a6 100%)"></div>
+                                <p class="text-xs font-semibold text-gray-700">Ocean Teal</p>
+                            </div>
+                            <div class="theme-card" data-theme="theme-dark" onclick="selectTheme(this)">
+                                <div class="theme-swatch" style="background:linear-gradient(135deg,#0f172a 50%,#334155 100%)"></div>
+                                <p class="text-xs font-semibold text-gray-700">Midnight Dark</p>
+                            </div>
+                            <div class="theme-card" data-theme="theme-orange" onclick="selectTheme(this)">
+                                <div class="theme-swatch" style="background:linear-gradient(135deg,#7c2d12 50%,#f97316 100%)"></div>
+                                <p class="text-xs font-semibold text-gray-700">Sunset Orange</p>
+                            </div>
+                            <div class="theme-card" data-theme="theme-rose" onclick="selectTheme(this)">
+                                <div class="theme-swatch" style="background:linear-gradient(135deg,#881337 50%,#f43f5e 100%)"></div>
+                                <p class="text-xs font-semibold text-gray-700">Rose Gold</p>
+                            </div>
+                            <div class="theme-card" data-theme="theme-indigo" onclick="selectTheme(this)">
+                                <div class="theme-swatch" style="background:linear-gradient(135deg,#312e81 50%,#6366f1 100%)"></div>
+                                <p class="text-xs font-semibold text-gray-700">Indigo Academic</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div><!-- end admin-content -->
+        </div><!-- end admin-dashboard-view -->
+    </div><!-- end modal inner -->
+</div><!-- end admin-modal -->
+
+<script>
+// ===== DATA & STATE =====
+const defaultData = [
+    {
+        type: 'academic', roll: '1001', name: 'Rahul Sharma', father: 'Amit Sharma',
+        dob: '2005-08-15', exam: 'Annual Examination 2024', institution: 'Gurukul Public School',
+        classLevel: 'Class 10', section: 'A',
+        subjects: [{sub:'Mathematics',get:95,tot:100},{sub:'Science',get:88,tot:100},{sub:'English',get:92,tot:100},{sub:'Social Studies',get:78,tot:100},{sub:'Hindi',get:85,tot:100}],
+        status: 'live'
+    },
+    {
+        type: 'competition', roll: '2001', name: 'Priya Singh', father: 'Vikram Singh',
+        dob: '2004-02-10', exam: 'Annual Examination 2024', institution: 'Gurukul Public School',
+        classLevel: 'Class 12', section: 'B',
+        stats: {totalQ:100, correct:80, incorrect:10, pos:4, neg:1},
+        status: 'live'
+    }
+];
+
+if(!localStorage.getItem('rs_data')) localStorage.setItem('rs_data', JSON.stringify(defaultData));
+if(!localStorage.getItem('rs_inst')) localStorage.setItem('rs_inst', JSON.stringify({name:'Gurukul Public School', addr:'123 Education Lane, Knowledge City - 400001', signature:null}));
+if(!localStorage.getItem('rs_exams')) localStorage.setItem('rs_exams', JSON.stringify([{name:'Annual Examination 2024',totalMarks:500,totalQuestions:100,correctMarks:4,wrongMarks:1}]));
+if(!localStorage.getItem('rs_institutions')) localStorage.setItem('rs_institutions', JSON.stringify([{name:'Gurukul Public School', address:'123 Education Lane, Knowledge City - 400001'}]));
+if(!localStorage.getItem('rs_subjects')) localStorage.setItem('rs_subjects', JSON.stringify(['Mathematics','Science','Physics','Chemistry','Biology','English','Hindi','Social Studies','Computer Science','History','Geography','Economics','Civics','Sanskrit','Physical Education']));
+if(!localStorage.getItem('rs_layout')) localStorage.setItem('rs_layout', 'classic');
+if(!localStorage.getItem('rs_academic_year')) localStorage.setItem('rs_academic_year', '2024-25');
+// Apply saved portal skin on page load
+(function(){ const s = localStorage.getItem('rs_portal_skin'); if(s) document.body.classList.add(s); })();
+
+// ===== DOM ELEMENTS =====
+const els = {
+    searchSec: document.getElementById('search-section'),
+    resultWrap: document.getElementById('result-wrapper'),
+    resultCont: document.getElementById('result-container'),
+    adminModal: document.getElementById('admin-modal'),
+    adminLogin: document.getElementById('admin-login-view'),
+    adminDash: document.getElementById('admin-dashboard-view'),
+    timer: document.getElementById('session-timer'),
+    adminReturnBtn: document.getElementById('admin-return-wrapper'),
+    studentBackBtn: document.getElementById('student-back-btn')
+};
+let isAdminViewing = false;
+
+// ===== APPLY LAYOUT TO RESULT CARD =====
+const ALL_LAYOUTS = ['classic','modern','certificate','emerald','crimson','midnight','saffron','rose','ocean','carbon','mint','burgundy','slate','copper','lavender','forest','ruby','indigo-steel','amber','mono'];
+const THEMED_LAYOUTS = ['emerald','crimson','midnight','saffron','rose','ocean','carbon','mint','burgundy','slate','copper','lavender','forest','ruby','indigo-steel','amber','mono'];
+
+function applyLayout(layout) {
+    const card = document.getElementById('result-container');
+    // Remove all layout classes
+    ALL_LAYOUTS.forEach(l => card.classList.remove('layout-'+l));
+    card.classList.remove('layout-themed');
+    card.classList.add('layout-'+layout);
+
+    const infoWrap = document.getElementById('rc-student-info-wrap');
+
+    if (THEMED_LAYOUTS.includes(layout)) {
+        // For themed layouts, CSS variables handle everything — clear inline overrides
+        card.classList.add('layout-themed');
+        infoWrap.style.cssText = ''; // clear; CSS classes take over
+    } else if(layout === 'classic') {
+        infoWrap.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:12px 24px;margin:0 40px 24px;padding:20px 24px;background:#f8faff;border:1px solid #e0e8ff;border-radius:10px;';
+    } else if(layout === 'modern') {
+        infoWrap.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:0;margin:0 40px 24px;padding:0;background:transparent;border:1px solid #e9d5ff;border-radius:12px;overflow:hidden;';
+    } else if(layout === 'certificate') {
+        infoWrap.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:12px 24px;margin:24px 40px 24px;padding:20px 24px;background:linear-gradient(135deg,#fffdf0,#fff8e1);border:2px solid #f5c842;border-radius:8px;';
+    }
+}
+
+// ===== SEARCH RESULT =====
+function searchResult() {
+    const roll = document.getElementById('search-roll').value.trim();
+    const selectedExam = document.getElementById('search-exam').value;
+
+    if(!roll) {
+        showSearchError('Please enter a roll number.');
+        return;
+    }
+
+    const data = JSON.parse(localStorage.getItem('rs_data')) || [];
+
+    // Filter by selected exam if one is chosen
+    let matches = data.filter(s => s.roll === roll);
+    if (selectedExam) {
+        matches = matches.filter(s => s.exam === selectedExam);
+    }
+
+    if (matches.length === 0) {
+        showSearchError('No result found for this roll number' + (selectedExam ? ' in the selected exam.' : '. Please check and try again.'));
+        return;
+    }
+
+    hideSearchError();
+    const student = matches[0];
+    renderResult(student);
+}
+
+function searchByName() {
+    const name = document.getElementById('search-name').value.trim();
+    const selectedExam = document.getElementById('search-exam').value;
+
+    if (!name) {
+        showSearchError('Please enter a student name to search.');
+        return;
+    }
+
+    const data = JSON.parse(localStorage.getItem('rs_data')) || [];
+    let matches = data.filter(s => s.name.toLowerCase().includes(name.toLowerCase()));
+    if (selectedExam) matches = matches.filter(s => s.exam === selectedExam);
+
+    if (matches.length === 0) {
+        showSearchError('No student found with this name' + (selectedExam ? ' in the selected exam.' : '.'));
+        return;
+    }
+
+    hideSearchError();
+
+    if (matches.length === 1) {
+        renderResult(matches[0]);
+    } else {
+        // Show picker if multiple matches
+        showNameMatches(matches);
+    }
+}
+
+function showNameMatches(matches) {
+    const searchSec = document.getElementById('search-section');
+    // Build a quick picker overlay inside search section
+    let overlay = document.getElementById('name-matches-overlay');
+    if (overlay) overlay.remove();
+    overlay = document.createElement('div');
+    overlay.id = 'name-matches-overlay';
+    overlay.style.cssText = 'background:rgba(255,255,255,0.12);border-radius:12px;padding:16px;margin-top:12px;border:1px solid rgba(255,255,255,0.3);';
+    overlay.innerHTML = `<p style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;opacity:0.8;margin-bottom:8px;">Multiple results found — select one:</p>` +
+        matches.map((s,i) => `<div onclick="selectNameMatch(${i})" style="cursor:pointer;background:rgba(255,255,255,0.18);border-radius:8px;padding:10px 14px;margin-bottom:6px;border:1px solid rgba(255,255,255,0.25);" onmouseover="this.style.background='rgba(255,255,255,0.28)'" onmouseout="this.style.background='rgba(255,255,255,0.18)'">
+            <span style="font-weight:700;">${s.name}</span> &nbsp;·&nbsp; Roll: <strong>${s.roll}</strong> &nbsp;·&nbsp; <span style="opacity:0.7;font-size:11px;">${s.exam}</span>
+        </div>`).join('');
+    window._nameMatches = matches;
+    searchSec.querySelector('.search-hero').appendChild(overlay);
+}
+
+function selectNameMatch(i) {
+    const student = window._nameMatches[i];
+    const overlay = document.getElementById('name-matches-overlay');
+    if (overlay) overlay.remove();
+    hideSearchError();
+    renderResult(student);
+}
+
+function showSearchError(msg) {
+    const errMsg = document.getElementById('search-error-msg');
+    const errTxt = document.getElementById('search-error-text');
+    if(errMsg && errTxt) {
+        errTxt.innerText = msg;
+        errMsg.classList.remove('hidden');
+    }
+}
+
+function hideSearchError() {
+    const errMsg = document.getElementById('search-error-msg');
+    if(errMsg) errMsg.classList.add('hidden');
+}
+
+function renderResult(student) {
+    const inst = JSON.parse(localStorage.getItem('rs_inst'));
+
+    // Check global pause (bypass for admin)
+    const globalPaused = localStorage.getItem('rs_global_status') === 'paused';
+    if (!isAdminViewing && globalPaused) {
+        showPausedMessage(student.roll); return;
+    }
+    if (!isAdminViewing && student.status === 'paused') {
+        showPausedMessage(student.roll); return;
+    }
+
+    // Get institution
+    let instData = inst;
+    if(student.institution) {
+        const institutions = JSON.parse(localStorage.getItem('rs_institutions')) || [];
+        const found = institutions.find(i => i.name === student.institution);
+        if(found) instData = {name: found.name, addr: found.address, signature: inst.signature, logo: found.logo || null};
+    }
+
+    // Apply chosen layout
+    const layout = localStorage.getItem('rs_layout') || 'classic';
+    applyLayout(layout);
+
+    // Academic year
+    const year = localStorage.getItem('rs_academic_year') || '';
+
+    // Render header
+    document.getElementById('nav-inst-name').innerText = instData.name;
+    document.getElementById('res-inst-name').innerText = instData.name;
+    document.getElementById('res-inst-address').innerText = instData.addr;
+    document.getElementById('res-exam-badge').innerText = student.exam + (year ? ' — ' + year : '');
+
+    // Render student info
+    document.getElementById('res-name').innerText = student.name;
+    document.getElementById('res-roll').innerText = student.roll;
+
+    // Class/Section
+    const classWrap = document.getElementById('wrapper-class');
+    if (student.classLevel && student.classLevel.trim()) {
+        classWrap.style.display = 'block';
+        let classText = student.classLevel;
+        if(student.section && student.section.trim()) classText += ' — Section ' + student.section;
+        document.getElementById('res-class').innerText = classText;
+    } else { classWrap.style.display = 'none'; }
+
+    // Father
+    const fatherWrap = document.getElementById('wrapper-father');
+    if (student.father && student.father.trim()) {
+        fatherWrap.style.display = 'block';
+        document.getElementById('res-father').innerText = student.father;
+    } else { fatherWrap.style.display = 'none'; }
+
+    // Mother
+    const motherWrap = document.getElementById('wrapper-mother');
+    if (student.mother && student.mother.trim()) {
+        motherWrap.style.display = 'block';
+        document.getElementById('res-mother').innerText = student.mother;
+    } else { motherWrap.style.display = 'none'; }
+
+    // DOB — format as DD-MM-YYYY
+    const dobWrap = document.getElementById('wrapper-dob');
+    if (student.dob && student.dob.trim()) {
+        dobWrap.style.display = 'block';
+        // Support both YYYY-MM-DD and DD-MM-YYYY
+        let dobDisplay = student.dob;
+        const isoMatch = student.dob.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (isoMatch) dobDisplay = isoMatch[3] + '-' + isoMatch[2] + '-' + isoMatch[1];
+        document.getElementById('res-dob').innerText = dobDisplay;
+    } else { dobWrap.style.display = 'none'; }
+
+    // Institution Logo Watermark
+    const logoWm = document.getElementById('rc-logo-watermark');
+    if (instData.logo) {
+        logoWm.innerHTML = `<img src="${instData.logo}" style="max-width:420px;max-height:420px;object-fit:contain;filter:grayscale(40%) saturate(60%);" alt="">`;
+    } else {
+        logoWm.innerHTML = '';
+    }
+
+    // Signature
+    const sigImg = document.getElementById('res-sig-img');
+    const controllerLabel = document.getElementById('res-controller-label');
+    if (inst.signature) {
+        sigImg.src = inst.signature;
+        sigImg.classList.remove('hidden');
+        controllerLabel.classList.remove('hidden');
+    } else {
+        sigImg.classList.add('hidden');
+        controllerLabel.classList.add('hidden');
+    }
+
+    // Date
+    document.getElementById('res-date').innerText = 'Date: ' + new Date().toLocaleDateString('en-IN');
+
+    // ===== RENDER CONTENT =====
+    const contentDiv = document.getElementById('dynamic-result-content');
+    let summaryText = '';
+
+    if (student.type === 'academic') {
+        let totalMarks = 0, obtained = 0;
+        let rows = student.subjects.map((s, idx) => {
+            obtained += parseFloat(s.get);
+            totalMarks += parseFloat(s.tot);
+            const rowPct = parseFloat(s.tot) > 0 ? ((parseFloat(s.get)/parseFloat(s.tot))*100).toFixed(1) : 0;
+            const pctColor = rowPct >= 75 ? '#16a34a' : rowPct >= 50 ? '#d97706' : '#dc2626';
+            const rowBg = idx % 2 === 0 ? '' : 'background:#f8faff;';
+            return `<tr class="rc-table-row">
+                <td style="padding:10px 14px;font-size:13px;border-bottom:1px solid #f1f5f9;${rowBg}">${s.sub}</td>
+                <td style="padding:10px 14px;text-align:center;font-size:13px;border-bottom:1px solid #f1f5f9;${rowBg}">${s.tot}</td>
+                <td style="padding:10px 14px;text-align:center;font-size:13px;font-weight:700;border-bottom:1px solid #f1f5f9;${rowBg}">${s.get}</td>
+                <td style="padding:10px 14px;text-align:center;font-size:13px;font-weight:700;border-bottom:1px solid #f1f5f9;color:${pctColor};${rowBg}">${rowPct}%</td>
+            </tr>`;
+        }).join('');
+
+        const percent = totalMarks > 0 ? ((obtained/totalMarks)*100).toFixed(2) : 0;
+        const grade = percent >= 90 ? 'A+' : percent >= 80 ? 'A' : percent >= 70 ? 'B+' : percent >= 60 ? 'B' : percent >= 50 ? 'C' : 'F';
+        const gradeColor = percent >= 80 ? '#16a34a' : percent >= 60 ? '#d97706' : '#dc2626';
+        const remarks = percent >= 80 ? 'Excellent Performance' : percent >= 60 ? 'Good Performance' : percent >= 40 ? 'Satisfactory' : 'Needs Improvement';
+
+        contentDiv.innerHTML = `
+            <div style="margin-bottom:16px;padding:10px 0;border-bottom:2px solid #e5e7eb;">
+                <p style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280;">Academic Performance Report</p>
+            </div>
+            <table class="rc-table" style="width:100%;border-collapse:collapse;margin-bottom:20px;table-layout:fixed;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+                <thead class="rc-thead"><tr>
+                    <th style="width:40%;padding:11px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">Subject</th>
+                    <th style="width:20%;padding:11px 14px;text-align:center;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">Max Marks</th>
+                    <th style="width:20%;padding:11px 14px;text-align:center;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">Obtained</th>
+                    <th style="width:20%;padding:11px 14px;text-align:center;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">%</th>
+                </tr></thead>
+                <tbody>${rows}</tbody>
+                <tfoot><tr class="rc-tfoot">
+                    <td style="padding:11px 14px;font-weight:700;font-size:13px;">TOTAL</td>
+                    <td style="padding:11px 14px;text-align:center;font-weight:700;font-size:13px;">${totalMarks}</td>
+                    <td style="padding:11px 14px;text-align:center;font-weight:700;font-size:13px;">${obtained}</td>
+                    <td style="padding:11px 14px;text-align:center;font-weight:700;font-size:13px;">${percent}%</td>
+                </tr></tfoot>
+            </table>
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+                <span class="rc-grade-badge" style="flex-shrink:0;">
+                    <i class="fas fa-award" style="margin-right:6px;"></i>
+                    Grade: ${grade} &nbsp;|&nbsp; ${percent}%
+                </span>
+                <span style="font-size:13px;font-weight:700;color:${gradeColor};background:rgba(0,0,0,0.03);padding:8px 18px;border-radius:999px;border:1.5px solid ${gradeColor};flex-shrink:0;">
+                    ${remarks}
+                </span>
+            </div>
+        `;
+        summaryText = `Name:${student.name}|Roll:${student.roll}|Class:${student.classLevel||''}|Score:${percent}%|Grade:${grade}`;
+
+    } else {
+        const s = student.stats;
+        const score = (s.correct * s.pos) - (s.incorrect * s.neg);
+        const totalPossible = s.totalQ * s.pos;
+        const totalAttempted = s.correct + s.incorrect;
+        const accuracy = totalAttempted > 0 ? ((s.correct / totalAttempted) * 100).toFixed(1) : 0;
+        const skipped = s.totalQ - totalAttempted;
+
+        // Calculate Overall Rank
+        const allData = JSON.parse(localStorage.getItem('rs_data')) || [];
+        const sameExamStudents = allData.filter(st => st.type === 'competition' && st.exam === student.exam);
+        const scores = sameExamStudents.map(st => {
+            const sc = st.stats;
+            return (sc.correct * sc.pos) - (sc.incorrect * sc.neg);
+        }).sort((a, b) => b - a);
+        const rank = scores.indexOf(score) + 1;
+        const totalParticipants = sameExamStudents.length;
+        const rankSuffix = rank === 1 ? 'st' : rank === 2 ? 'nd' : rank === 3 ? 'rd' : 'th';
+
+        contentDiv.innerHTML = `
+            <div style="margin-bottom:16px;padding:10px 0;border-bottom:2px solid #e5e7eb;">
+                <p style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280;">Competition Result Summary</p>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:18px">
+                <div class="score-box score-box-total" style="color:white">
+                    <div style="font-size:32px;font-weight:900;line-height:1">${score}</div>
+                    <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;opacity:0.85;margin-top:6px">Net Score</div>
+                    <div style="font-size:10px;opacity:0.7">out of ${totalPossible}</div>
+                </div>
+                <div class="score-box score-box-correct" style="color:white">
+                    <div style="font-size:32px;font-weight:900;line-height:1">${s.correct}</div>
+                    <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;opacity:0.85;margin-top:6px">Correct</div>
+                    <div style="font-size:10px;opacity:0.7">+${s.correct * s.pos} marks</div>
+                </div>
+                <div class="score-box score-box-wrong" style="color:white">
+                    <div style="font-size:32px;font-weight:900;line-height:1">${s.incorrect}</div>
+                    <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;opacity:0.85;margin-top:6px">Wrong</div>
+                    <div style="font-size:10px;opacity:0.7">-${s.incorrect * s.neg} marks</div>
+                </div>
+                <div style="background:linear-gradient(135deg,#1e3a8a,#1d4ed8);border-radius:12px;padding:16px;text-align:center;color:white;position:relative;overflow:hidden;">
+                    <div style="font-size:32px;font-weight:900;line-height:1">${rank}<sup style="font-size:14px">${rankSuffix}</sup></div>
+                    <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;opacity:0.85;margin-top:6px">Overall Rank</div>
+                    <div style="font-size:10px;opacity:0.7">out of ${totalParticipants}</div>
+                </div>
+            </div>
+            <table class="rc-table" style="width:100%;border-collapse:collapse;border-radius:8px;overflow:hidden;border:1px solid #e5e7eb;font-size:13px;margin-bottom:20px;table-layout:fixed">
+                <thead class="rc-thead"><tr>
+                    <th style="width:60%;padding:11px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Metric</th>
+                    <th style="width:40%;padding:11px 14px;text-align:center;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Value</th>
+                </tr></thead>
+                <tbody>
+                    <tr><td style="padding:10px 14px;font-weight:600;border-bottom:1px solid #f1f5f9;">Total Questions</td><td style="padding:10px 14px;text-align:center;font-weight:700;border-bottom:1px solid #f1f5f9;">${s.totalQ}</td></tr>
+                    <tr style="background:#f8faff"><td style="padding:10px 14px;font-weight:600;border-bottom:1px solid #f1f5f9;background:#f8faff">Attempted</td><td style="padding:10px 14px;text-align:center;font-weight:700;border-bottom:1px solid #f1f5f9;background:#f8faff">${totalAttempted}</td></tr>
+                    <tr><td style="padding:10px 14px;font-weight:600;border-bottom:1px solid #f1f5f9;">Skipped</td><td style="padding:10px 14px;text-align:center;font-weight:700;border-bottom:1px solid #f1f5f9;">${skipped}</td></tr>
+                    <tr style="background:#f8faff"><td style="padding:10px 14px;font-weight:600;border-bottom:1px solid #f1f5f9;background:#f8faff">Marking Scheme</td><td style="padding:10px 14px;text-align:center;font-weight:700;border-bottom:1px solid #f1f5f9;background:#f8faff">+${s.pos} / -${s.neg}</td></tr>
+                    <tr><td style="padding:10px 14px;font-weight:600;">Accuracy Rate</td><td style="padding:10px 14px;text-align:center;font-weight:700;">${accuracy}%</td></tr>
+                </tbody>
+            </table>
+            <div style="display:flex;align-items:center;gap:12px;">
+                <span class="rc-grade-badge" style="flex-shrink:0;"><i class="fas fa-chart-bar" style="margin-right:6px;"></i> Score: ${score}/${totalPossible}</span>
+                <span style="font-size:13px;font-weight:700;color:#1d4ed8;background:#eff6ff;padding:8px 18px;border-radius:999px;border:1.5px solid #bfdbfe;flex-shrink:0;">Accuracy: ${accuracy}%</span>
+                <span style="font-size:13px;font-weight:700;color:#166534;background:#dcfce7;padding:8px 18px;border-radius:999px;border:1.5px solid #86efac;flex-shrink:0;"><i class="fas fa-medal mr-1"></i>Rank: ${rank}${rankSuffix} / ${totalParticipants}</span>
+            </div>
+        `;
+        summaryText = `Name:${student.name}|Roll:${student.roll}|Score:${score}/${totalPossible}|Accuracy:${accuracy}%|Rank:${rank}/${totalParticipants}`;
+    }
+
+    // QR Code
+    document.getElementById('qrcode').innerHTML = '';
+    new QRCode(document.getElementById('qrcode'), {text: summaryText, width: 80, height: 80});
+
+    // Switch views
+    els.searchSec.style.display = 'none';
+    els.resultWrap.classList.remove('hidden');
+    els.resultCont.style.display = 'block';
+
+    if (isAdminViewing) {
+        els.adminReturnBtn.classList.remove('hidden');
+        els.studentBackBtn.classList.add('hidden');
+    } else {
+        els.adminReturnBtn.classList.add('hidden');
+        els.studentBackBtn.classList.remove('hidden');
+    }
+}
+
+function showPausedMessage(roll) {
+    document.getElementById('search-section').style.display = 'none';
+    document.getElementById('result-paused-section').classList.remove('hidden');
+    document.getElementById('paused-roll').innerText = roll;
+}
+
+function resetSearch() {
+    els.resultWrap.classList.add('hidden');
+    els.resultCont.style.display = 'none';
+    els.searchSec.style.display = 'block';
+    document.getElementById('search-roll').value = '';
+    els.adminReturnBtn.classList.add('hidden');
+    document.getElementById('result-paused-section').classList.add('hidden');
+    isAdminViewing = false;
+}
+
+function backToSearch() {
+    document.getElementById('result-paused-section').classList.add('hidden');
+    document.getElementById('search-section').style.display = 'block';
+    document.getElementById('search-roll').value = '';
+}
+
+function returnToAdminDashboard() {
+    els.resultWrap.classList.add('hidden');
+    els.resultCont.style.display = 'none';
+    els.searchSec.style.display = 'block';
+    els.adminReturnBtn.classList.add('hidden');
+    // Re-open modal showing dashboard (not login screen)
+    els.adminModal.classList.remove('hidden');
+    els.adminLogin.style.display = 'none';
+    els.adminDash.classList.remove('hidden');   // properly remove Tailwind hidden
+    isAdminViewing = false;
+    startTimer();
+    loadAllResults();
+}
+
+// ===== PRINT AS PDF =====
+function printResultPDF() {
+    window.scrollTo(0, 0);
+    window.print();
+}
+
+// ===== DOWNLOAD JPG =====
+function downloadJPG() {
+    window.scrollTo(0,0);
+    html2canvas(document.getElementById('result-container'), {scale:2, useCORS:true, backgroundColor:'#ffffff'}).then(canvas => {
+        const link = document.createElement('a');
+        link.download = 'result_' + (document.getElementById('res-roll').innerText || 'card') + '.jpg';
+        link.href = canvas.toDataURL('image/jpeg', 1.0);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    });
+}
+
+// ===== SHARE AS JPG =====
+async function shareResult() {
+    window.scrollTo(0, 0);
+    try {
+        const canvas = await html2canvas(document.getElementById('result-container'), {scale:2, useCORS:true, backgroundColor:'#ffffff'});
+        canvas.toBlob(async (blob) => {
+            const rollNo = document.getElementById('res-roll').innerText || 'student';
+            const studentName = document.getElementById('res-name').innerText || '';
+            const file = new File([blob], `result_${rollNo}.jpg`, {type: 'image/jpeg'});
+
+            if (navigator.canShare && navigator.canShare({files: [file]})) {
+                try {
+                    await navigator.share({
+                        files: [file],
+                        title: `Result Card — ${studentName}`,
+                        text: `📋 Exam Result for ${studentName} (Roll: ${rollNo})\nPowered by ResultScope`
+                    });
+                } catch(err) {
+                    if(err.name !== 'AbortError') fallbackShare(canvas, rollNo);
+                }
+            } else if (navigator.share) {
+                await navigator.share({
+                    title: `Result Card — ${studentName}`,
+                    text: `📋 Exam Result for ${studentName} (Roll: ${rollNo})`,
+                    url: window.location.href
+                });
+            } else {
+                fallbackShare(canvas, rollNo);
+            }
+        }, 'image/jpeg', 1.0);
+    } catch(e) {
+        alert('Could not generate image for sharing. Try Download instead.');
+    }
+}
+
+function fallbackShare(canvas, rollNo) {
+    const link = document.createElement('a');
+    link.download = `result_${rollNo}.jpg`;
+    link.href = canvas.toDataURL('image/jpeg', 1.0);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    alert('Image downloaded! You can now share it manually.');
+}
+
+// ===== ADMIN =====
+let sessionTime = 1800;
+let timerInterval;
+
+function toggleAdminPanel() {
+    els.adminModal.classList.toggle('hidden');
+    // Always reset to login view when opening/closing
+    els.adminLogin.style.display = '';          // let CSS class (flex) take over
+    els.adminDash.classList.add('hidden');       // hide dashboard (Tailwind hidden = display:none !important)
+    document.getElementById('admin-pass').value = '';
+    clearInterval(timerInterval);
+}
+
+function adminLogin() {
+    if (document.getElementById('admin-pass').value === 'Rajwar@020240') {
+        els.adminLogin.style.display = 'none';       // hide login panel
+        els.adminDash.classList.remove('hidden');     // show dashboard (removes Tailwind's display:none !important)
+        startTimer();
+        loadSettings();
+        loadAllResults();
+        loadExamsDropdown();
+        loadInstitutionsDropdown();
+        loadSubjectPicker();
+        switchTab('upload');
+    } else {
+        alert('Wrong Password!');
+        document.getElementById('admin-pass').value = '';
+        document.getElementById('admin-pass').focus();
+    }
+}
+
+function startTimer() {
+    sessionTime = 1800;
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+        sessionTime--;
+        const min = Math.floor(sessionTime/60), sec = sessionTime%60;
+        els.timer.innerText = `Session: ${min}:${sec<10?'0'+sec:sec}`;
+        if(sessionTime<=0) {
+            clearInterval(timerInterval);
+            alert('Session Expired! Please login again.');
+            // Force close and reset
+            els.adminModal.classList.add('hidden');
+            els.adminDash.classList.add('hidden');
+            els.adminLogin.style.display = '';
+            document.getElementById('admin-pass').value = '';
+            els.adminReturnBtn.classList.add('hidden');
+            isAdminViewing = false;
+            if(els.resultWrap && !els.resultWrap.classList.contains('hidden')) {
+                els.resultWrap.classList.add('hidden');
+                els.resultCont.style.display = 'none';
+                els.searchSec.style.display = 'block';
+            }
+        }
+    }, 1000);
+    ['mousemove','keypress'].forEach(e => window.addEventListener(e, () => {
+        if(sessionTime>0 && !els.adminModal.classList.contains('hidden')) sessionTime=1800;
+    }));
+}
+
+function adminLogout() {
+    if(confirm('Are you sure you want to logout?')) {
+        clearInterval(timerInterval);
+        document.getElementById('admin-pass').value = '';
+        els.adminDash.classList.add('hidden');        // hide dashboard
+        els.adminLogin.style.display = '';            // restore login panel
+        els.adminModal.classList.add('hidden');       // close modal
+        els.resultWrap.classList.add('hidden');
+        els.resultCont.style.display = 'none';
+        els.searchSec.style.display = 'block';
+        els.adminReturnBtn.classList.add('hidden');
+        document.getElementById('result-paused-section').classList.add('hidden');
+        document.getElementById('search-roll').value = '';
+        isAdminViewing = false;
+    }
+}
+
+// ===== TAB SWITCHING =====
+function switchTab(tab) {
+    ['upload','view','settings','exams','institutions','edit'].forEach(t => {
+        const el = document.getElementById('tab-'+t);
+        if(el) el.classList.add('hidden');
+    });
+    ['upload','view','settings','exams','institutions'].forEach(t => {
+        const btn = document.getElementById('tab-btn-'+t);
+        if(btn) { btn.style.borderBottomColor='transparent'; btn.style.color=''; btn.style.background=''; }
+    });
+    const activeTab = document.getElementById('tab-'+tab);
+    if(activeTab) activeTab.classList.remove('hidden');
+    const activeBtn = document.getElementById('tab-btn-'+tab);
+    if(activeBtn) { activeBtn.style.borderBottomColor='#1d4ed8'; activeBtn.style.color='#1d4ed8'; activeBtn.style.background='white'; }
+
+    if(tab==='view') { loadAllResults(); renderGlobalStatusBar(); }
+    else if(tab==='upload') { loadExamsDropdown(); loadInstitutionsDropdown(); loadSubjectPicker(); }
+    else if(tab==='exams') { loadExamsList(); toggleExamForm(); loadAcadExamSubjectPicker(); loadAcadExamYearDropdown(); }
+    else if(tab==='institutions') { loadInstitutionsList(); }
+    else if(tab==='settings') { loadManagedSubjectsList(); markActiveTheme(); markActiveLayout(); markActiveSkin(); loadAcademicYearDropdown(); }
+}
+
+// ===== LOAD ALL RESULTS =====
+function loadAllResults() {
+    const data = JSON.parse(localStorage.getItem('rs_data')) || [];
+    const tbody = document.getElementById('admin-results-list');
+    const msg = document.getElementById('no-results-msg');
+    tbody.innerHTML = '';
+    renderGlobalStatusBar();
+
+    if(data.length===0) { msg.classList.remove('hidden'); return; }
+    msg.classList.add('hidden');
+
+    const isGlobalPaused = localStorage.getItem('rs_global_status') === 'paused';
+
+    data.forEach((s, index) => {
+        // Effective status — global pause overrides individual
+        const effectiveStatus = isGlobalPaused ? 'paused' : s.status;
+        const storedStatus = s.status || 'live';
+
+        let statusBadge;
+        if(isGlobalPaused) {
+            statusBadge = `<span class="text-xs px-2 py-1 rounded font-semibold" style="background:#fef3c7;color:#92400e">Paused (Global)</span>`;
+        } else if(storedStatus === 'live') {
+            statusBadge = `<span class="text-xs px-2 py-1 rounded font-semibold" style="background:#dcfce7;color:#166534">Live</span>`;
+        } else {
+            statusBadge = `<span class="text-xs px-2 py-1 rounded font-semibold" style="background:#fef9c3;color:#854d0e">Paused</span>`;
+        }
+
+        // Toggle button always shows actual stored status
+        const toggleBtn = storedStatus === 'live'
+            ? `<button onclick="toggleStatus(${index})" class="text-yellow-600 hover:text-yellow-800 text-base mr-2" title="Pause this result"><i class="fas fa-pause-circle"></i></button>`
+            : `<button onclick="toggleStatus(${index})" class="text-green-600 hover:text-green-800 text-base mr-2" title="Make Live"><i class="fas fa-play-circle"></i></button>`;
+
+        const classInfo = s.classLevel ? `<span class="text-xs text-gray-500">${s.classLevel}${s.section?' '+s.section:''}</span>` : '<span class="text-xs text-gray-400">—</span>';
+
+        tbody.innerHTML += `
+            <tr class="bg-white border-b hover:bg-gray-50">
+                <td class="px-3 py-2.5 font-bold text-gray-800 text-sm">${s.roll}</td>
+                <td class="px-3 py-2.5">
+                    <div class="font-semibold text-sm text-gray-800">${s.name}</div>
+                    ${classInfo}
+                </td>
+                <td class="px-3 py-2.5 uppercase text-xs font-semibold text-gray-500">${s.type}</td>
+                <td class="px-3 py-2.5">${statusBadge}</td>
+                <td class="px-3 py-2.5 text-right whitespace-nowrap">
+                    ${toggleBtn}
+                    <button onclick="editResult(${index})" class="text-blue-600 hover:text-blue-800 text-base mr-2" title="Edit"><i class="fas fa-edit"></i></button>
+                    <button onclick="adminViewResult('${s.roll}')" class="text-gray-500 hover:text-gray-700 text-base mr-2" title="View"><i class="fas fa-eye"></i></button>
+                    <button onclick="deleteResult(${index})" class="text-red-500 hover:text-red-700 text-base" title="Delete"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>`;
+    });
+}
+
+function adminViewResult(roll) {
+    els.adminModal.classList.add('hidden');
+    isAdminViewing = true;
+    const data = JSON.parse(localStorage.getItem('rs_data')) || [];
+    const student = data.find(s => s.roll === roll);
+    if(student) renderResult(student);
+}
+
+// ===== GLOBAL STATUS =====
+function toggleGlobalStatus() {
+    const current = localStorage.getItem('rs_global_status') || 'live';
+    const newStatus = current === 'live' ? 'paused' : 'live';
+    localStorage.setItem('rs_global_status', newStatus);
+    renderGlobalStatusBar();
+    loadAllResults();
+    alert(newStatus === 'paused'
+        ? '⏸️ All results PAUSED globally. Students see "Result Coming Soon".'
+        : '✅ All results are now LIVE.');
+}
+
+function renderGlobalStatusBar() {
+    const status = localStorage.getItem('rs_global_status') || 'live';
+    const bar = document.getElementById('global-status-bar');
+    const icon = document.getElementById('global-status-icon');
+    const label = document.getElementById('global-status-label');
+    const desc = document.getElementById('global-status-desc');
+    const btn = document.getElementById('global-status-btn');
+    const note = document.getElementById('global-pause-note');
+    if(!bar) return;
+    if(status === 'live') {
+        bar.style.background='#f0fdf4'; bar.style.borderColor='#bbf7d0';
+        icon.style.background='#16a34a'; icon.innerHTML='<i class="fas fa-circle-check text-white text-sm"></i>';
+        label.innerText='All Results: LIVE'; label.style.color='#166534';
+        desc.innerText='Students can view results normally';
+        btn.style.background='#eab308'; btn.innerHTML='<i class="fas fa-pause-circle mr-1"></i>Pause All';
+        note.classList.add('hidden');
+    } else {
+        bar.style.background='#fffbeb'; bar.style.borderColor='#fde68a';
+        icon.style.background='#d97706'; icon.innerHTML='<i class="fas fa-pause text-white text-sm"></i>';
+        label.innerText='All Results: PAUSED'; label.style.color='#92400e';
+        desc.innerText='All students see "Result Coming Soon"';
+        btn.style.background='#16a34a'; btn.innerHTML='<i class="fas fa-play-circle mr-1"></i>Make All Live';
+        note.classList.remove('hidden');
+    }
+}
+
+// ===== INDIVIDUAL STATUS TOGGLE =====
+function toggleStatus(index) {
+    let data = JSON.parse(localStorage.getItem('rs_data')) || [];
+    if (data[index]) {
+        data[index].status = data[index].status === 'live' ? 'paused' : 'live';
+        localStorage.setItem('rs_data', JSON.stringify(data));
+        loadAllResults();
+        alert(`Result for ${data[index].name}: ${data[index].status === 'live' ? 'Now LIVE ✅' : 'Now PAUSED ⏸️'}`);
+    }
+}
+
+function deleteResult(index) {
+    let data = JSON.parse(localStorage.getItem('rs_data')) || [];
+    if(!data[index]) return;
+    if(confirm(`Permanently delete result of:\n${data[index].name} (Roll: ${data[index].roll})?`)) {
+        data.splice(index, 1);
+        localStorage.setItem('rs_data', JSON.stringify(data));
+        loadAllResults();
+    }
+}
+
+// ===== FORM TOGGLE =====
+function toggleFormType() {
+    const type = document.getElementById('new-type').value;
+    document.getElementById('form-academic').classList.toggle('hidden', type!=='academic');
+    document.getElementById('form-competition').classList.toggle('hidden', type!=='competition');
+    document.getElementById('new-class-wrap').classList.toggle('hidden', type!=='academic');
+    document.getElementById('new-section-wrap').classList.toggle('hidden', type!=='academic');
+}
+
+// ===== SAVE RESULT (always saves as live) =====
+function saveResult() {
+    const type = document.getElementById('new-type').value;
+    const base = {
+        type,
+        name: document.getElementById('new-name').value.trim(),
+        roll: document.getElementById('new-roll').value.trim(),
+        exam: document.getElementById('new-exam').value,
+        institution: document.getElementById('new-institution').value,
+        classLevel: document.getElementById('new-class').value,
+        section: document.getElementById('new-section').value.trim(),
+        father: document.getElementById('new-father').value.trim(),
+        mother: document.getElementById('new-mother').value.trim(),
+        dob: document.getElementById('new-dob').value.trim(),
+        status: 'live'
+    };
+
+    if(!base.name || !base.roll || !base.exam || !base.institution) {
+        alert('Name, Roll Number, Exam and Institution are required.'); return;
+    }
+
+    if(type === 'academic') {
+        const rows = document.querySelectorAll('#subjects-rows tr.subject-row');
+        if(rows.length === 0) { alert('Please add at least one subject.'); return; }
+        base.subjects = [];
+        let valid = true;
+        rows.forEach(row => {
+            const subName = row.getAttribute('data-subject');
+            const markVal = parseFloat(row.querySelector('.marks-input').value);
+            const fullVal = parseFloat(row.querySelector('.fullmarks-input').value);
+            if(isNaN(markVal) || isNaN(fullVal) || fullVal <= 0) { alert(`Enter valid marks for: ${subName}`); valid = false; }
+            base.subjects.push({sub: subName, get: markVal, tot: fullVal});
+        });
+        if(!valid) return;
+    } else {
+        base.stats = {
+            totalQ: parseInt(document.getElementById('new-total-q').value),
+            correct: parseInt(document.getElementById('new-correct').value),
+            incorrect: parseInt(document.getElementById('new-incorrect').value),
+            pos: parseInt(document.getElementById('new-pos-mark').value),
+            neg: parseInt(document.getElementById('new-neg-mark').value)
+        };
+    }
+
+    let currentData = JSON.parse(localStorage.getItem('rs_data')) || [];
+    currentData = currentData.filter(d => d.roll !== base.roll);
+    currentData.push(base);
+    localStorage.setItem('rs_data', JSON.stringify(currentData));
+    alert('✅ Result Saved! Roll: ' + base.roll);
+
+    // Clear form
+    document.getElementById('new-roll').value = '';
+    document.getElementById('new-name').value = '';
+    document.getElementById('new-father').value = '';
+    document.getElementById('new-mother').value = '';
+    document.getElementById('new-dob').value = '';
+    document.getElementById('new-class').value = '';
+    document.getElementById('new-section').value = '';
+    document.getElementById('subjects-rows').innerHTML = '';
+    document.getElementById('subjects-table-container').classList.add('hidden');
+    updateSubjectTotals();
+    loadAllResults();
+    sessionTime = 1800;
+}
+
+// ===== SETTINGS =====
+let tempSignature = null;
+
+function loadSettings() {
+    const inst = JSON.parse(localStorage.getItem('rs_inst'));
+    document.getElementById('set-inst-name').value = inst.name;
+    document.getElementById('set-inst-addr').value = inst.addr;
+    const preview = document.getElementById('set-sig-preview');
+    const placeholder = document.getElementById('set-sig-placeholder');
+    if(inst.signature) {
+        tempSignature = inst.signature;
+        preview.src = inst.signature;
+        preview.classList.remove('hidden');
+        placeholder.classList.add('hidden');
+    } else {
+        tempSignature = null;
+        preview.classList.add('hidden');
+        placeholder.classList.remove('hidden');
+    }
+    loadAcademicYearDropdown();
+    markActiveLayout();
+}
+
+function loadAcademicYearDropdown() {
+    const sel = document.getElementById('set-academic-year');
+    if(!sel) return;
+    const saved = localStorage.getItem('rs_academic_year') || '2024-25';
+    sel.innerHTML = '';
+    // Generate years from 2018-19 to 2035-36
+    for(let y = 2018; y <= 2035; y++) {
+        const label = `${y}-${String(y+1).slice(-2)}`;
+        sel.innerHTML += `<option value="${label}" ${label===saved?'selected':''}>${label}</option>`;
+    }
+    document.getElementById('current-year-display').innerText = 'Current: ' + saved;
+}
+
+function saveAcademicYear() {
+    const val = document.getElementById('set-academic-year').value;
+    localStorage.setItem('rs_academic_year', val);
+    document.getElementById('current-year-display').innerText = 'Current: ' + val;
+    alert('✅ Academic Year set to ' + val);
+}
+
+document.getElementById('set-sig-upload').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if(file) {
+        const reader = new FileReader();
+        reader.onloadend = function() {
+            tempSignature = reader.result;
+            const preview = document.getElementById('set-sig-preview');
+            preview.src = tempSignature;
+            preview.classList.remove('hidden');
+            document.getElementById('set-sig-placeholder').classList.add('hidden');
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+function clearSignature() {
+    tempSignature = null;
+    document.getElementById('set-sig-upload').value = '';
+    document.getElementById('set-sig-preview').classList.add('hidden');
+    document.getElementById('set-sig-placeholder').classList.remove('hidden');
+}
+
+function saveSettings() {
+    const inst = {
+        name: document.getElementById('set-inst-name').value,
+        addr: document.getElementById('set-inst-addr').value,
+        signature: tempSignature
+    };
+    localStorage.setItem('rs_inst', JSON.stringify(inst));
+    alert('✅ Settings Updated!');
+}
+
+// ===== LAYOUT SELECTION =====
+function selectLayout(card) {
+    const layout = card.getAttribute('data-layout');
+    localStorage.setItem('rs_layout', layout);
+    markActiveLayout();
+    // Show a quick preview toast
+    const name = card.querySelector('p')?.innerText || layout;
+    showToast('Layout changed to: ' + name);
+}
+
+function markActiveLayout() {
+    const current = localStorage.getItem('rs_layout') || 'classic';
+    document.querySelectorAll('.layout-card').forEach(c => {
+        c.classList.toggle('selected', c.getAttribute('data-layout') === current);
+    });
+}
+
+// ===== PORTAL SKIN SELECTION =====
+const ALL_SKINS = ['skin-parchment','skin-minimal','skin-dark-pro','skin-festive'];
+
+function selectSkin(card) {
+    const skin = card.getAttribute('data-skin');
+    localStorage.setItem('rs_portal_skin', skin);
+    applyPortalSkin(skin);
+    markActiveSkin();
+    showToast('Portal skin applied!');
+}
+
+function applyPortalSkin(skin) {
+    // Remove all skin classes from body
+    document.body.classList.remove(...ALL_SKINS);
+    if (skin) document.body.classList.add(skin);
+}
+
+function markActiveSkin() {
+    const current = localStorage.getItem('rs_portal_skin') || '';
+    document.querySelectorAll('.skin-card').forEach(c => {
+        c.classList.toggle('selected', c.getAttribute('data-skin') === current);
+    });
+}
+
+function showToast(msg) {
+    let t = document.getElementById('rs-toast');
+    if (!t) {
+        t = document.createElement('div');
+        t.id = 'rs-toast';
+        t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:white;padding:10px 22px;border-radius:999px;font-size:13px;font-weight:600;z-index:9999;opacity:0;transition:opacity 0.3s;box-shadow:0 4px 20px rgba(0,0,0,0.25);white-space:nowrap;';
+        document.body.appendChild(t);
+    }
+    t.innerText = msg;
+    t.style.opacity = '1';
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => { t.style.opacity = '0'; }, 2200);
+}
+
+// ===== EXAMS MANAGEMENT =====
+function toggleExamForm() {
+    const type = document.getElementById('exam-type-select').value;
+    document.getElementById('exam-form-academic').classList.toggle('hidden', type !== 'academic');
+    document.getElementById('exam-form-competition').classList.toggle('hidden', type !== 'competition');
+}
+
+function loadAcadExamSubjectPicker() {
+    const subjects = JSON.parse(localStorage.getItem('rs_subjects')) || [];
+    const picker = document.getElementById('acad-subject-pick');
+    if(!picker) return;
+    picker.innerHTML = '<option value="">-- Select Subject --</option>';
+    subjects.forEach(s => picker.innerHTML += `<option value="${s}">${s}</option>`);
+}
+
+function addAcadSubjectRow() {
+    const picker = document.getElementById('acad-subject-pick');
+    const subName = picker.value;
+    const maxMarks = parseInt(document.getElementById('acad-subj-max').value) || 100;
+    if(!subName) { alert('Select a subject.'); return; }
+    const existing = document.querySelectorAll('#acad-exam-subjects-rows tr');
+    for(let r of existing) {
+        if(r.getAttribute('data-subject') === subName) { alert(subName + ' already added.'); return; }
+    }
+    const tbody = document.getElementById('acad-exam-subjects-rows');
+    const tr = document.createElement('tr');
+    tr.setAttribute('data-subject', subName);
+    tr.innerHTML = `<td class="p-2 text-xs font-medium">${subName}</td>
+        <td class="p-2 text-center"><input type="number" value="${maxMarks}" min="1" class="acad-max-input w-16 border rounded p-1 text-center text-xs" oninput="calcAcadTotal()"></td>
+        <td class="p-2 text-center"><button onclick="this.closest('tr').remove();calcAcadTotal()" class="text-red-400 hover:text-red-600 text-xs"><i class="fas fa-times"></i></button></td>`;
+    tbody.appendChild(tr);
+    document.getElementById('acad-exam-subjects-container').classList.remove('hidden');
+    picker.value = '';
+    calcAcadTotal();
+}
+
+function calcAcadTotal() {
+    let total = 0;
+    document.querySelectorAll('.acad-max-input').forEach(inp => total += parseInt(inp.value)||0);
+    document.getElementById('acad-total-max').innerText = total || '—';
+}
+
+function calcCompTotal() {
+    const questions = parseInt(document.getElementById('comp-total-questions').value) || 0;
+    const correctMarks = parseFloat(document.getElementById('comp-correct-marks').value) || 0;
+    const wrongMarks = parseFloat(document.getElementById('comp-wrong-marks').value) || 0;
+    const total = questions * correctMarks;
+    document.getElementById('comp-total-marks').value = total || '';
+    document.getElementById('comp-total-preview').innerText = total ? total : '—';
+    document.getElementById('comp-scheme-preview').innerText = `+${correctMarks} / -${wrongMarks}`;
+}
+
+function addAcademicExam() {
+    const name = document.getElementById('acad-exam-name').value.trim();
+    const year = document.getElementById('acad-exam-year').value;
+    if(!name) { alert('Exam name is required!'); return; }
+
+    const subjectRows = document.querySelectorAll('#acad-exam-subjects-rows tr');
+    const subjects = [];
+    let totalMax = 0;
+    subjectRows.forEach(row => {
+        const subName = row.getAttribute('data-subject');
+        const maxVal = parseInt(row.querySelector('.acad-max-input').value) || 100;
+        subjects.push({sub: subName, max: maxVal});
+        totalMax += maxVal;
+    });
+
+    const isLive = document.getElementById('acad-exam-is-live').checked;
+    const fullName = name + (year ? ' ' + year : '');
+
+    const exam = {
+        name: fullName,
+        examType: 'academic',
+        academicYear: year,
+        totalMarks: totalMax,
+        subjects: subjects,
+        isLive: isLive
+    };
+
+    let exams = JSON.parse(localStorage.getItem('rs_exams')) || [];
+    if(exams.find(e => e.name === exam.name)) { alert('Exam already exists!'); return; }
+    exams.push(exam);
+    localStorage.setItem('rs_exams', JSON.stringify(exams));
+
+    // Clear form
+    document.getElementById('acad-exam-name').value = '';
+    document.getElementById('acad-exam-subjects-rows').innerHTML = '';
+    document.getElementById('acad-exam-subjects-container').classList.add('hidden');
+    document.getElementById('acad-total-max').innerText = '—';
+
+    loadExamsList();
+    loadExamsDropdown();
+    loadSearchExamDropdown();
+    alert('Academic Exam added: ' + fullName);
+}
+
+function addCompetitionExam() {
+    const name = document.getElementById('comp-exam-name').value.trim();
+    const examDate = document.getElementById('comp-exam-date').value;
+    const totalQ = parseInt(document.getElementById('comp-total-questions').value);
+    const correctMarks = parseFloat(document.getElementById('comp-correct-marks').value);
+    const wrongMarks = parseFloat(document.getElementById('comp-wrong-marks').value)||0;
+
+    if(!name) { alert('Competition name is required!'); return; }
+    if(!totalQ || !correctMarks) { alert('Total questions and correct marks are required!'); return; }
+
+    const totalMarks = totalQ * correctMarks;
+    const isLive = document.getElementById('comp-exam-is-live').checked;
+
+    const exam = {
+        name: name,
+        examType: 'competition',
+        examDate: examDate,
+        totalMarks: totalMarks,
+        totalQuestions: totalQ,
+        correctMarks: correctMarks,
+        wrongMarks: wrongMarks,
+        isLive: isLive
+    };
+
+    let exams = JSON.parse(localStorage.getItem('rs_exams')) || [];
+    if(exams.find(e => e.name === exam.name)) { alert('Exam already exists!'); return; }
+    exams.push(exam);
+    localStorage.setItem('rs_exams', JSON.stringify(exams));
+
+    // Clear form
+    document.getElementById('comp-exam-name').value = '';
+    document.getElementById('comp-exam-date').value = '';
+    document.getElementById('comp-total-questions').value = '';
+    document.getElementById('comp-correct-marks').value = '';
+    document.getElementById('comp-wrong-marks').value = '0';
+    document.getElementById('comp-total-marks').value = '';
+    document.getElementById('comp-scheme-preview').innerText = '+0 / -0';
+    document.getElementById('comp-total-preview').innerText = '—';
+
+    loadExamsList();
+    loadExamsDropdown();
+    loadSearchExamDropdown();
+    alert('Competition Exam added: ' + name);
+}
+
+function addExam() {
+    // Legacy wrapper — not used but kept for compatibility
+    alert('Please use the new Academic or Competition exam forms.');
+}
+
+function loadExamsList() {
+    const exams = JSON.parse(localStorage.getItem('rs_exams')) || [];
+    const tbody = document.getElementById('exams-list');
+    const msg = document.getElementById('no-exams-msg');
+    tbody.innerHTML = '';
+    if(exams.length===0) { msg.classList.remove('hidden'); return; }
+    msg.classList.add('hidden');
+    exams.forEach((exam, index) => {
+        const typeTag = exam.examType === 'competition'
+            ? `<span class="text-xs px-2 py-0.5 rounded-full font-bold" style="background:#f3e8ff;color:#7c3aed">🏆 Competition</span>`
+            : `<span class="text-xs px-2 py-0.5 rounded-full font-bold" style="background:#dbeafe;color:#1d4ed8">📚 Academic</span>`;
+        const details = exam.examType === 'competition'
+            ? `${exam.totalQuestions} Qs · +${exam.correctMarks}/-${exam.wrongMarks} · ${exam.totalMarks} marks`
+            : `${exam.subjects ? exam.subjects.length + ' subjects' : ''} · ${exam.totalMarks} total marks`;
+        const liveBadge = exam.isLive !== false
+            ? `<span class="text-xs px-2 py-0.5 rounded font-semibold" style="background:#dcfce7;color:#166534">Live</span>`
+            : `<span class="text-xs px-2 py-0.5 rounded font-semibold" style="background:#fef9c3;color:#854d0e">Hidden</span>`;
+        tbody.innerHTML += `<tr class="bg-white border-b hover:bg-gray-50">
+            <td class="px-4 py-2.5 font-medium text-sm">${exam.name}</td>
+            <td class="px-4 py-2.5">${typeTag}</td>
+            <td class="px-4 py-2.5 text-xs text-gray-600">${details}</td>
+            <td class="px-4 py-2.5">${liveBadge}</td>
+            <td class="px-4 py-2.5 text-right">
+                <button onclick="toggleExamLive(${index})" class="text-yellow-500 hover:text-yellow-700 text-xs font-bold mr-2"><i class="fas fa-toggle-on"></i></button>
+                <button onclick="deleteExam(${index})" class="text-red-500 hover:text-red-700 text-xs font-bold"><i class="fas fa-trash mr-1"></i>Delete</button>
+            </td>
+        </tr>`;
+    });
+}
+
+function toggleExamLive(index) {
+    let exams = JSON.parse(localStorage.getItem('rs_exams')) || [];
+    if(exams[index]) {
+        exams[index].isLive = exams[index].isLive === false ? true : false;
+        localStorage.setItem('rs_exams', JSON.stringify(exams));
+        loadExamsList();
+        loadSearchExamDropdown();
+    }
+}
+
+function deleteExam(index) {
+    if(confirm('Delete this exam?')) {
+        let exams = JSON.parse(localStorage.getItem('rs_exams')) || [];
+        exams.splice(index, 1);
+        localStorage.setItem('rs_exams', JSON.stringify(exams));
+        loadExamsList(); loadExamsDropdown();
+    }
+}
+
+function loadExamsDropdown() {
+    const exams = JSON.parse(localStorage.getItem('rs_exams')) || [];
+    ['new-exam','edit-exam'].forEach(id => {
+        const sel = document.getElementById(id);
+        if(!sel) return;
+        sel.innerHTML = '<option value="">-- Select Exam --</option>';
+        exams.forEach(e => sel.innerHTML += `<option value="${e.name}">${e.name}</option>`);
+    });
+}
+
+// Load only LIVE exams into the student-facing search dropdown
+function loadSearchExamDropdown() {
+    const exams = JSON.parse(localStorage.getItem('rs_exams')) || [];
+    const sel = document.getElementById('search-exam');
+    if(!sel) return;
+    const prevVal = sel.value;
+    sel.innerHTML = '<option value="" style="color:#1e293b;background:white;">-- Select Exam (Optional) --</option>';
+    // Show only live exams
+    exams.filter(e => e.isLive !== false).forEach(e => {
+        sel.innerHTML += `<option value="${e.name}" style="color:#1e293b;background:white;">${e.name}</option>`;
+    });
+    // Restore selection if still valid
+    if(prevVal && exams.find(e => e.name === prevVal && e.isLive !== false)) sel.value = prevVal;
+}
+
+function updateSearchPlaceholder() {
+    // Optional: update roll input placeholder based on selected exam
+}
+
+// ===== INSTITUTIONS MANAGEMENT =====
+let tempInstLogo = null;
+
+function previewInstLogo() {
+    const file = document.getElementById('inst-logo-upload').files[0];
+    if(file) {
+        const reader = new FileReader();
+        reader.onloadend = function() {
+            tempInstLogo = reader.result;
+            const preview = document.getElementById('inst-logo-preview');
+            preview.src = tempInstLogo;
+            preview.classList.remove('hidden');
+            document.getElementById('inst-logo-placeholder').classList.add('hidden');
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function addInstitution() {
+    const inst = {
+        name: document.getElementById('inst-name').value.trim(),
+        address: document.getElementById('inst-address').value.trim(),
+        logo: tempInstLogo || null
+    };
+    if(!inst.name || !inst.address) { alert('Name and address required!'); return; }
+    let list = JSON.parse(localStorage.getItem('rs_institutions')) || [];
+    if(list.find(i => i.name === inst.name)) { alert('Already exists!'); return; }
+    list.push(inst);
+    localStorage.setItem('rs_institutions', JSON.stringify(list));
+    document.getElementById('inst-name').value='';
+    document.getElementById('inst-address').value='';
+    document.getElementById('inst-logo-upload').value='';
+    document.getElementById('inst-logo-preview').classList.add('hidden');
+    document.getElementById('inst-logo-placeholder').classList.remove('hidden');
+    tempInstLogo = null;
+    loadInstitutionsList(); loadInstitutionsDropdown();
+    alert('Institution added!');
+}
+
+function loadInstitutionsList() {
+    const list = JSON.parse(localStorage.getItem('rs_institutions')) || [];
+    const tbody = document.getElementById('institutions-list');
+    const msg = document.getElementById('no-institutions-msg');
+    tbody.innerHTML = '';
+    if(list.length===0) { msg.classList.remove('hidden'); return; }
+    msg.classList.add('hidden');
+    list.forEach((inst, index) => {
+        const logoCell = inst.logo
+            ? `<img src="${inst.logo}" style="height:36px;max-width:60px;object-fit:contain;border-radius:4px;border:1px solid #e5e7eb;" alt="logo">`
+            : `<span class="text-xs text-gray-400">No logo</span>`;
+        tbody.innerHTML += `<tr class="bg-white border-b hover:bg-gray-50">
+            <td class="px-4 py-2.5">${logoCell}</td>
+            <td class="px-4 py-2.5 font-medium text-sm">${inst.name}</td>
+            <td class="px-4 py-2.5 text-sm text-gray-600">${inst.address}</td>
+            <td class="px-4 py-2.5 text-right">
+                <button onclick="deleteInstitution(${index})" class="text-red-500 hover:text-red-700 text-xs font-bold"><i class="fas fa-trash mr-1"></i>Delete</button>
+            </td>
+        </tr>`;
+    });
+}
+
+function deleteInstitution(index) {
+    if(confirm('Delete this institution?')) {
+        let list = JSON.parse(localStorage.getItem('rs_institutions')) || [];
+        list.splice(index, 1);
+        localStorage.setItem('rs_institutions', JSON.stringify(list));
+        loadInstitutionsList(); loadInstitutionsDropdown();
+    }
+}
+
+function loadInstitutionsDropdown() {
+    const list = JSON.parse(localStorage.getItem('rs_institutions')) || [];
+    ['new-institution','edit-institution'].forEach(id => {
+        const sel = document.getElementById(id);
+        if(!sel) return;
+        sel.innerHTML = '<option value="">-- Select Institution --</option>';
+        list.forEach(i => sel.innerHTML += `<option value="${i.name}">${i.name}</option>`);
+    });
+}
+
+// ===== EDIT RESULT =====
+function editResult(index) {
+    const data = JSON.parse(localStorage.getItem('rs_data')) || [];
+    const result = data[index];
+    if(!result) return;
+
+    loadExamsDropdown();
+    loadInstitutionsDropdown();
+    loadEditSubjectPicker();
+
+    document.getElementById('edit-original-roll').value = result.roll;
+    document.getElementById('edit-type').value = result.type;
+    document.getElementById('edit-name').value = result.name;
+    document.getElementById('edit-roll').value = result.roll;
+    document.getElementById('edit-exam').value = result.exam || '';
+    document.getElementById('edit-institution').value = result.institution || '';
+    document.getElementById('edit-class').value = result.classLevel || '';
+    document.getElementById('edit-section').value = result.section || '';
+    document.getElementById('edit-father').value = result.father || '';
+    document.getElementById('edit-mother').value = result.mother || '';
+    document.getElementById('edit-dob').value = result.dob || '';
+
+    if(result.type === 'academic') {
+        document.getElementById('edit-form-academic').classList.remove('hidden');
+        document.getElementById('edit-form-competition').classList.add('hidden');
+        document.getElementById('edit-subjects-rows').innerHTML = '';
+        document.getElementById('edit-subjects-table-container').classList.add('hidden');
+        (result.subjects||[]).forEach(s => addEditSubjectRowData(s.sub, parseFloat(s.get), parseFloat(s.tot)));
+        updateEditSubjectTotals();
+    } else {
+        document.getElementById('edit-form-academic').classList.add('hidden');
+        document.getElementById('edit-form-competition').classList.remove('hidden');
+        document.getElementById('edit-total-q').value = result.stats.totalQ;
+        document.getElementById('edit-correct').value = result.stats.correct;
+        document.getElementById('edit-incorrect').value = result.stats.incorrect;
+        document.getElementById('edit-pos-mark').value = result.stats.pos;
+        document.getElementById('edit-neg-mark').value = result.stats.neg;
+    }
+
+    // Show edit tab
+    ['upload','view','settings','exams','institutions'].forEach(t => {
+        const el = document.getElementById('tab-'+t);
+        if(el) el.classList.add('hidden');
+    });
+    document.getElementById('tab-edit').classList.remove('hidden');
+    updateEditStatusToggleBtn(result.status || 'live');
+}
+
+function cancelEdit() {
+    document.getElementById('tab-edit').classList.add('hidden');
+    switchTab('view');
+}
+
+function toggleEditFormType() {
+    const type = document.getElementById('edit-type').value;
+    document.getElementById('edit-form-academic').classList.toggle('hidden', type!=='academic');
+    document.getElementById('edit-form-competition').classList.toggle('hidden', type!=='competition');
+    if(type==='academic') loadEditSubjectPicker();
+}
+
+function updateResult() {
+    const originalRoll = document.getElementById('edit-original-roll').value;
+    const type = document.getElementById('edit-type').value;
+    const updated = {
+        type,
+        name: document.getElementById('edit-name').value.trim(),
+        roll: document.getElementById('edit-roll').value.trim(),
+        exam: document.getElementById('edit-exam').value,
+        institution: document.getElementById('edit-institution').value,
+        classLevel: document.getElementById('edit-class').value,
+        section: document.getElementById('edit-section').value.trim(),
+        father: document.getElementById('edit-father').value.trim(),
+        mother: document.getElementById('edit-mother').value.trim(),
+        dob: document.getElementById('edit-dob').value.trim()
+    };
+
+    if(!updated.name || !updated.roll || !updated.exam || !updated.institution) {
+        alert('Name, Roll Number, Exam and Institution are required.'); return;
+    }
+
+    if(type === 'academic') {
+        const editRows = document.querySelectorAll('#edit-subjects-rows tr.edit-subject-row');
+        if(editRows.length === 0) { alert('Please add at least one subject.'); return; }
+        updated.subjects = [];
+        let valid = true;
+        editRows.forEach(row => {
+            const subName = row.getAttribute('data-subject');
+            const markVal = parseFloat(row.querySelector('.edit-marks-input').value);
+            const fullVal = parseFloat(row.querySelector('.edit-fullmarks-input').value);
+            if(isNaN(markVal) || isNaN(fullVal) || fullVal <= 0) { alert(`Enter valid marks for: ${subName}`); valid = false; }
+            updated.subjects.push({sub: subName, get: markVal, tot: fullVal});
+        });
+        if(!valid) return;
+    } else {
+        updated.stats = {
+            totalQ: parseInt(document.getElementById('edit-total-q').value),
+            correct: parseInt(document.getElementById('edit-correct').value),
+            incorrect: parseInt(document.getElementById('edit-incorrect').value),
+            pos: parseInt(document.getElementById('edit-pos-mark').value),
+            neg: parseInt(document.getElementById('edit-neg-mark').value)
+        };
+    }
+
+    let data = JSON.parse(localStorage.getItem('rs_data')) || [];
+    const idx = data.findIndex(d => d.roll === originalRoll);
+    if(idx !== -1) {
+        updated.status = data[idx].status;
+        data[idx] = updated;
+        localStorage.setItem('rs_data', JSON.stringify(data));
+        alert('✅ Result Updated!');
+        cancelEdit();
+    } else { alert('Error: Result not found'); }
+}
+
+function toggleStatusFromEdit() {
+    const originalRoll = document.getElementById('edit-original-roll').value;
+    let data = JSON.parse(localStorage.getItem('rs_data')) || [];
+    const idx = data.findIndex(d => d.roll === originalRoll);
+    if(idx === -1) return;
+    data[idx].status = data[idx].status === 'live' ? 'paused' : 'live';
+    localStorage.setItem('rs_data', JSON.stringify(data));
+    updateEditStatusToggleBtn(data[idx].status);
+    alert(`Result ${data[idx].status === 'live' ? 'is now LIVE ✅' : 'has been PAUSED ⏸️'}`);
+}
+
+function deleteResultFromEdit() {
+    const originalRoll = document.getElementById('edit-original-roll').value;
+    let data = JSON.parse(localStorage.getItem('rs_data')) || [];
+    const idx = data.findIndex(d => d.roll === originalRoll);
+    if(idx === -1) return;
+    if(confirm(`Permanently delete result of ${data[idx].name} (Roll: ${originalRoll})?`)) {
+        data.splice(idx, 1);
+        localStorage.setItem('rs_data', JSON.stringify(data));
+        alert('Deleted.');
+        cancelEdit();
+    }
+}
+
+function updateEditStatusToggleBtn(status) {
+    const btn = document.getElementById('edit-status-toggle-btn');
+    const label = document.getElementById('edit-status-toggle-label');
+    if(!btn) return;
+    if(status === 'live') {
+        btn.style.background='#eab308'; label.innerHTML='<i class="fas fa-pause-circle mr-1"></i>Pause Result';
+    } else {
+        btn.style.background='#16a34a'; label.innerHTML='<i class="fas fa-play-circle mr-1"></i>Make Live';
+    }
+}
+
+// ===== SUBJECT BUILDER =====
+function loadSubjectPicker() {
+    const subjects = JSON.parse(localStorage.getItem('rs_subjects')) || [];
+    const picker = document.getElementById('subject-picker');
+    if(!picker) return;
+    picker.innerHTML = '<option value="">-- Select Subject --</option>';
+    subjects.forEach(s => picker.innerHTML += `<option value="${s}">${s}</option>`);
+}
+
+function addSubjectRow() {
+    const picker = document.getElementById('subject-picker');
+    const subjectName = picker.value;
+    const fullMarks = document.getElementById('subject-fullmarks').value || 100;
+    if(!subjectName) { alert('Select a subject first.'); return; }
+    const existing = document.querySelectorAll('#subjects-rows tr.subject-row');
+    for(let row of existing) {
+        if(row.getAttribute('data-subject') === subjectName) { alert(`${subjectName} already added.`); return; }
+    }
+    const tbody = document.getElementById('subjects-rows');
+    const tr = document.createElement('tr');
+    tr.className = 'subject-row border-b';
+    tr.setAttribute('data-subject', subjectName);
+    tr.innerHTML = `
+        <td class="p-2 text-sm font-medium">${subjectName}</td>
+        <td class="p-2 text-center"><input type="number" class="marks-input subject-row-input" placeholder="0" min="0" oninput="updateSubjectTotals()"></td>
+        <td class="p-2 text-center"><input type="number" class="fullmarks-input subject-row-input" value="${fullMarks}" min="1" oninput="updateSubjectTotals()"></td>
+        <td class="p-2 text-center text-xs font-bold row-percent text-blue-600">—</td>
+        <td class="p-2 text-center"><button type="button" onclick="removeSubjectRow(this)" class="text-red-500 hover:text-red-700 text-xs"><i class="fas fa-times"></i></button></td>`;
+    tbody.appendChild(tr);
+    document.getElementById('subjects-table-container').classList.remove('hidden');
+    picker.value = '';
+    updateSubjectTotals();
+}
+
+function removeSubjectRow(btn) {
+    btn.closest('tr').remove();
+    if(document.querySelectorAll('#subjects-rows tr.subject-row').length === 0)
+        document.getElementById('subjects-table-container').classList.add('hidden');
+    updateSubjectTotals();
+}
+
+function updateSubjectTotals() {
+    let totalObt = 0, totalFull = 0;
+    document.querySelectorAll('#subjects-rows tr.subject-row').forEach(row => {
+        const obt = parseFloat(row.querySelector('.marks-input').value) || 0;
+        const full = parseFloat(row.querySelector('.fullmarks-input').value) || 0;
+        totalObt += obt; totalFull += full;
+        row.querySelector('.row-percent').innerText = full > 0 ? ((obt/full)*100).toFixed(1)+'%' : '—';
+    });
+    const rows = document.querySelectorAll('#subjects-rows tr.subject-row');
+    document.getElementById('total-obtained').innerText = rows.length ? totalObt : '—';
+    document.getElementById('total-fullmarks').innerText = rows.length ? totalFull : '—';
+    document.getElementById('total-percent').innerText = rows.length ? (totalFull>0 ? ((totalObt/totalFull)*100).toFixed(2)+'%' : '—') : '—';
+}
+
+function saveCustomSubject() {
+    const input = document.getElementById('custom-subject-name');
+    const name = input.value.trim();
+    if(!name) { alert('Enter a subject name.'); return; }
+    let subjects = JSON.parse(localStorage.getItem('rs_subjects')) || [];
+    if(subjects.includes(name)) { alert('Subject already exists.'); return; }
+    subjects.push(name);
+    localStorage.setItem('rs_subjects', JSON.stringify(subjects));
+    input.value = '';
+    loadSubjectPicker();
+    alert(`"${name}" added!`);
+}
+
+// ===== EDIT SUBJECT BUILDER =====
+function loadEditSubjectPicker() {
+    const subjects = JSON.parse(localStorage.getItem('rs_subjects')) || [];
+    const picker = document.getElementById('edit-subject-picker');
+    if(!picker) return;
+    picker.innerHTML = '<option value="">-- Select Subject --</option>';
+    subjects.forEach(s => picker.innerHTML += `<option value="${s}">${s}</option>`);
+}
+
+function addEditSubjectRow() {
+    const picker = document.getElementById('edit-subject-picker');
+    const subjectName = picker.value;
+    const fullMarks = document.getElementById('edit-subject-fullmarks').value || 100;
+    if(!subjectName) { alert('Select a subject.'); return; }
+    const existing = document.querySelectorAll('#edit-subjects-rows tr.edit-subject-row');
+    for(let row of existing) {
+        if(row.getAttribute('data-subject') === subjectName) { alert(`${subjectName} already added.`); return; }
+    }
+    addEditSubjectRowData(subjectName, '', parseFloat(fullMarks));
+    picker.value = '';
+    updateEditSubjectTotals();
+}
+
+function addEditSubjectRowData(subjectName, marksObtained, fullMarks) {
+    const tbody = document.getElementById('edit-subjects-rows');
+    const tr = document.createElement('tr');
+    tr.className = 'edit-subject-row border-b';
+    tr.setAttribute('data-subject', subjectName);
+    tr.innerHTML = `
+        <td class="p-2 text-sm font-medium">${subjectName}</td>
+        <td class="p-2 text-center"><input type="number" class="edit-marks-input subject-row-input" value="${marksObtained!=='' ? marksObtained : ''}" placeholder="0" min="0" oninput="updateEditSubjectTotals()"></td>
+        <td class="p-2 text-center"><input type="number" class="edit-fullmarks-input subject-row-input" value="${fullMarks}" min="1" oninput="updateEditSubjectTotals()"></td>
+        <td class="p-2 text-center text-xs font-bold edit-row-percent text-blue-600">—</td>
+        <td class="p-2 text-center"><button type="button" onclick="removeEditSubjectRow(this)" class="text-red-500 hover:text-red-700 text-xs"><i class="fas fa-times"></i></button></td>`;
+    tbody.appendChild(tr);
+    document.getElementById('edit-subjects-table-container').classList.remove('hidden');
+    updateEditSubjectTotals();
+}
+
+function removeEditSubjectRow(btn) {
+    btn.closest('tr').remove();
+    if(document.querySelectorAll('#edit-subjects-rows tr.edit-subject-row').length === 0)
+        document.getElementById('edit-subjects-table-container').classList.add('hidden');
+    updateEditSubjectTotals();
+}
+
+function updateEditSubjectTotals() {
+    let totalObt = 0, totalFull = 0;
+    document.querySelectorAll('#edit-subjects-rows tr.edit-subject-row').forEach(row => {
+        const obt = parseFloat(row.querySelector('.edit-marks-input').value) || 0;
+        const full = parseFloat(row.querySelector('.edit-fullmarks-input').value) || 0;
+        totalObt += obt; totalFull += full;
+        row.querySelector('.edit-row-percent').innerText = full > 0 ? ((obt/full)*100).toFixed(1)+'%' : '—';
+    });
+    const rows = document.querySelectorAll('#edit-subjects-rows tr.edit-subject-row');
+    document.getElementById('edit-total-obtained').innerText = rows.length ? totalObt : '—';
+    document.getElementById('edit-total-fullmarks').innerText = rows.length ? totalFull : '—';
+    document.getElementById('edit-total-percent').innerText = rows.length ? (totalFull>0 ? ((totalObt/totalFull)*100).toFixed(2)+'%' : '—') : '—';
+}
+
+function saveEditCustomSubject() {
+    const input = document.getElementById('edit-custom-subject-name');
+    const name = input.value.trim();
+    if(!name) { alert('Enter a subject name.'); return; }
+    let subjects = JSON.parse(localStorage.getItem('rs_subjects')) || [];
+    if(subjects.includes(name)) { alert('Already exists.'); return; }
+    subjects.push(name);
+    localStorage.setItem('rs_subjects', JSON.stringify(subjects));
+    input.value = '';
+    loadEditSubjectPicker(); loadSubjectPicker();
+    alert(`"${name}" added!`);
+}
+
+// ===== MANAGED SUBJECTS =====
+function addManagedSubject() {
+    const input = document.getElementById('manage-subject-input');
+    const name = input.value.trim();
+    if(!name) return;
+    let subjects = JSON.parse(localStorage.getItem('rs_subjects')) || [];
+    if(subjects.includes(name)) { alert('Already exists.'); return; }
+    subjects.push(name);
+    localStorage.setItem('rs_subjects', JSON.stringify(subjects));
+    input.value = '';
+    loadManagedSubjectsList(); loadSubjectPicker();
+}
+
+function removeManagedSubject(name) {
+    let subjects = JSON.parse(localStorage.getItem('rs_subjects')) || [];
+    subjects = subjects.filter(s => s !== name);
+    localStorage.setItem('rs_subjects', JSON.stringify(subjects));
+    loadManagedSubjectsList(); loadSubjectPicker();
+}
+
+function loadManagedSubjectsList() {
+    const subjects = JSON.parse(localStorage.getItem('rs_subjects')) || [];
+    const container = document.getElementById('managed-subjects-list');
+    if(!container) return;
+    container.innerHTML = '';
+    if(subjects.length===0) { container.innerHTML='<span class="text-xs text-gray-400">No subjects yet.</span>'; return; }
+    subjects.forEach(s => {
+        const tag = document.createElement('span');
+        tag.className = 'inline-flex items-center gap-1 bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1.5 rounded-full';
+        tag.innerHTML = `${s} <button onclick="removeManagedSubject('${s.replace(/'/g,"\\'")}')" class="ml-1 text-blue-400 hover:text-red-600 font-black leading-none">&times;</button>`;
+        container.appendChild(tag);
+    });
+}
+
+// ===== THEMES =====
+const allThemes = ['','theme-purple','theme-green','theme-red','theme-teal','theme-dark','theme-orange','theme-rose','theme-indigo'];
+
+function applyTheme(themeClass) {
+    allThemes.forEach(t => { if(t) document.body.classList.remove(t); });
+    if(themeClass) document.body.classList.add(themeClass);
+    localStorage.setItem('rs_theme', themeClass);
+}
+
+function selectTheme(card) {
+    applyTheme(card.getAttribute('data-theme'));
+    markActiveTheme();
+}
+
+function markActiveTheme() {
+    const current = localStorage.getItem('rs_theme') || '';
+    document.querySelectorAll('.theme-card').forEach(c => {
+        c.classList.toggle('selected', c.getAttribute('data-theme') === current);
+    });
+}
+
+// ===== INIT =====
+applyTheme(localStorage.getItem('rs_theme') || '');
+// Initialize form state
+toggleFormType();
+// Load search exam dropdown on page load
+loadSearchExamDropdown();
+
+// Load academic year dropdown for exam form
+function loadAcadExamYearDropdown() {
+    const sel = document.getElementById('acad-exam-year');
+    if(!sel) return;
+    const saved = localStorage.getItem('rs_academic_year') || '2024-25';
+    sel.innerHTML = '';
+    for(let y = 2018; y <= 2035; y++) {
+        const label = `${y}-${String(y+1).slice(-2)}`;
+        sel.innerHTML += `<option value="${label}" ${label===saved?'selected':''}>${label}</option>`;
+    }
+}
+</script>
+</body>
+</html>
